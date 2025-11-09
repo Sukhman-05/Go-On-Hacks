@@ -6,6 +6,21 @@ function RacerCard({ racer, showDetails = false, onClick }) {
   const stats = racer.stats;
   const xpProgress = (racer.xp / EVOLUTION_XP_THRESHOLD) * 100;
 
+  // Determine character type for ALL racers (Orc or Soldier)
+  // Use a simple hash based on racer ID to consistently assign character type
+  // This ensures the same racer always shows the same character type
+  const getCharacterType = (racerId) => {
+    if (!racerId) return 'orc';
+    // Simple hash to determine character type
+    const hash = racerId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return hash % 2 === 0 ? 'orc' : 'soldier';
+  };
+
+  // All racers show character sprites (Orc or Soldier), not sperm
+  // Sperm sprites are only used during racing
+  const characterType = getCharacterType(racer.id);
+  const characterSprite = `/sprites/characters/${characterType}_idle.png`;
+
   return (
     <motion.div
       whileHover={{ scale: showDetails ? 1 : 1.02 }}
@@ -30,8 +45,13 @@ function RacerCard({ racer, showDetails = false, onClick }) {
       </div>
 
       {/* Racer Visual */}
-      <div className={`${getRarityBg(racer.rarity)} bg-opacity-20 rounded-lg p-6 mb-3 text-center`}>
-        <div className="text-6xl">🧬</div>
+      <div className={`${getRarityBg(racer.rarity)} bg-opacity-20 rounded-lg p-6 mb-3 text-center flex items-center justify-center min-h-[120px]`}>
+        <img 
+          src={characterSprite} 
+          alt={characterType}
+          className="w-20 h-20 object-contain"
+          style={{ imageRendering: 'pixelated' }}
+        />
       </div>
 
       {/* Stats */}

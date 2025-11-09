@@ -6,7 +6,7 @@ import RaceScene from '../game/RaceScene';
 function RaceCanvas() {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
-  const { frames, currentFrame } = useRaceStore();
+  const { frames, currentFrame, currentRace } = useRaceStore();
 
   useEffect(() => {
     if (!canvasRef.current || gameRef.current) return;
@@ -49,14 +49,14 @@ function RaceCanvas() {
       const scene = gameRef.current?.scene?.scenes?.[0];
       if (scene && scene.setRaceData) {
         console.log('RaceCanvas: Setting race data to Phaser', { framesLength: frames.length });
-        scene.setRaceData(frames);
+        scene.setRaceData(frames, currentRace);
       } else {
         console.warn('RaceCanvas: Scene not ready for setRaceData');
       }
     }, 200);
 
     return () => clearTimeout(timeoutId);
-  }, [frames]);
+  }, [frames, currentRace]);
 
   // Update Phaser scene with current frame
   useEffect(() => {

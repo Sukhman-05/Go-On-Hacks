@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { summonRacer } from '../services/api';
 import { useAuthStore } from '../store/useAuthStore';
 import { useGameStore } from '../store/useGameStore';
-import { formatCredits, getRarityColor } from '../utils/formatters';
+import { formatCredits, getRarityColor, getRarityBg, getRarityBorder } from '../utils/formatters';
 import { SUMMON_COST } from '../utils/constants';
 import RacerCard from '../components/RacerCard';
 
@@ -98,33 +98,118 @@ function Summon() {
           )}
         </AnimatePresence>
 
-        {/* Summoned Racer */}
+        {/* Summoned Racer - Enhanced Display */}
         <AnimatePresence>
           {summonedRacer && !summoning && (
             <motion.div
               initial={{ opacity: 0, scale: 0.5, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8 }}
               transition={{ type: 'spring', duration: 0.8 }}
-              className="text-center"
+              className="max-w-2xl mx-auto"
             >
-              <div className="mb-6">
-                <h2 className="text-4xl font-bold mb-2">🎉 Success!</h2>
-                <p className={`text-2xl ${getRarityColor(summonedRacer.rarity)}`}>
-                  {summonedRacer.rarity.toUpperCase()} Racer Summoned!
+              {/* Success Header */}
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                  className="text-7xl mb-4"
+                >
+                  🎉
+                </motion.div>
+                <h2 className="text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  Racer Summoned!
+                </h2>
+                <p className={`text-3xl font-bold ${getRarityColor(summonedRacer.rarity)}`}>
+                  {summonedRacer.rarity.toUpperCase()}
                 </p>
               </div>
 
-              <div className="max-w-md mx-auto">
-                <RacerCard racer={summonedRacer} showDetails />
-              </div>
+              {/* Large Sprite Display */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-gradient-to-br from-dark-card to-dark rounded-2xl p-8 mb-6 border-2 border-primary/30 shadow-2xl"
+              >
+                <div className="flex flex-col md:flex-row items-center gap-8">
+                  {/* Sprite */}
+                  <div className="flex-shrink-0">
+                    <div className={`${getRarityBg(summonedRacer.rarity)} bg-opacity-20 rounded-xl p-6 border-2 ${getRarityBorder(summonedRacer.rarity)} border-opacity-50`}>
+                      {(() => {
+                        // Determine character type based on racer ID (same logic as RacerCard)
+                        const getCharacterType = (racerId) => {
+                          if (!racerId) return 'orc';
+                          const hash = racerId.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                          return hash % 2 === 0 ? 'orc' : 'soldier';
+                        };
+                        const characterType = getCharacterType(summonedRacer.id);
+                        return (
+                          <img 
+                            src={`/sprites/characters/${characterType}_idle.png`}
+                            alt={characterType}
+                            className="w-32 h-32 object-contain"
+                            style={{ imageRendering: 'pixelated' }}
+                          />
+                        );
+                      })()}
+                    </div>
+                  </div>
 
-              <div className="mt-8 flex justify-center gap-4">
-                <button onClick={() => setSummonedRacer(null)} className="btn-secondary">
+                  {/* Stats */}
+                  <div className="flex-1 w-full">
+                    <h3 className="text-3xl font-bold mb-4 text-center md:text-left">{summonedRacer.name}</h3>
+                    <div className="space-y-3">
+                      {Object.entries(summonedRacer.stats).map(([stat, value]) => (
+                        <div key={stat} className="bg-dark/50 rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-semibold text-gray-300 capitalize">{stat}</span>
+                            <span className="text-xl font-bold text-white">{value}</span>
+                          </div>
+                          <div className="w-full bg-dark rounded-full h-2">
+                            <div
+                              className={`${getRarityBg(summonedRacer.rarity)} h-2 rounded-full transition-all`}
+                              style={{ width: `${(value / 50) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-700">
+                      <div className="flex justify-between text-sm text-gray-400">
+                        <span>XP Progress</span>
+                        <span className="text-white font-bold">{summonedRacer.xp} / 500</span>
+                      </div>
+                      <div className="w-full bg-dark rounded-full h-2 mt-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min((summonedRacer.xp / 500) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-4">
+                <motion.button 
+                  onClick={() => setSummonedRacer(null)} 
+                  className="btn-secondary px-8 py-3"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   Summon Again
-                </button>
-                <a href="/race" className="btn-primary">
+                </motion.button>
+                <motion.a 
+                  href="/race" 
+                  className="btn-primary px-8 py-3"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   Race Now!
-                </a>
+                </motion.a>
               </div>
             </motion.div>
           )}
