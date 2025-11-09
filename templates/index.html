@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performative Male Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5);
+            max-width: 900px;
+            width: 100%;
+            padding: 48px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 12px;
+            font-size: 2.75em;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 1.15em;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        .upload-area {
+            border: 2.5px dashed #c7d2fe;
+            border-radius: 20px;
+            padding: 48px 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-area:hover::before {
+            left: 100%;
+        }
+
+        .upload-area:hover {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-color: #818cf8;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.2);
+        }
+
+        .upload-area.dragover {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            border-color: #6366f1;
+            transform: scale(1.01);
+            box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        .upload-icon {
+            font-size: 3.5em;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+        }
+
+        .upload-text {
+            color: #4f46e5;
+            font-size: 1.25em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .upload-hint {
+            color: #94a3b8;
+            font-size: 0.95em;
+            font-weight: 400;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 450px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+            border: 4px solid white;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+            border: none;
+            padding: 16px 48px;
+            font-size: 1.15em;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            display: block;
+            margin: 24px auto;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4), 0 0 0 0 rgba(99, 102, 241, 0.5);
+            letter-spacing: -0.01em;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.5), 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            animation: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .score-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-circle {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            font-size: 3.5em;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 4s ease infinite;
+            box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.4), inset 0 0 0 8px rgba(255, 255, 255, 0.1);
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .score-circle:hover::before {
+            opacity: 0.3;
+        }
+
+        .score-label {
+            font-size: 0.28em;
+            opacity: 0.95;
+            margin-top: 12px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .score-percentage {
+            font-size: 1em;
+            letter-spacing: -0.02em;
+        }
+
+        .detected-items {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            padding: 28px;
+            margin-top: 32px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .detected-items h3 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .item-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 12px;
+        }
+
+        .item-list li {
+            padding: 14px 18px;
+            margin: 0;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #6366f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        .item-list li:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left-color: #8b5cf6;
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            margin: 6px 8px 6px 0;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .category-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 32px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .loading p {
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 16px;
+            font-size: 1.05em;
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.1);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 24px;
+            display: none;
+            border: 1px solid #fca5a5;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+            font-weight: 500;
+        }
+
+        .error.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .improvement-suggestions {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 16px;
+            padding: 28px;
+            margin-top: 32px;
+            border: 1px solid #fcd34d;
+            box-shadow: 0 4px 6px rgba(251, 191, 36, 0.1);
+        }
+
+        .improvement-suggestions h3 {
+            color: #92400e;
+            margin-bottom: 12px;
+            font-size: 1.5em;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .improvement-intro {
+            color: #78350f;
+            margin-bottom: 20px;
+            font-style: italic;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .improvement-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 12px;
+        }
+
+        .improvement-list li {
+            padding: 16px 18px 16px 48px;
+            margin: 0;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #f59e0b;
+            position: relative;
+            transition: all 0.2s ease;
+            color: #78350f;
+            line-height: 1.6;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .improvement-list li:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left-color: #d97706;
+        }
+
+        .improvement-list li::before {
+            content: "💡";
+            position: absolute;
+            left: 16px;
+            font-size: 1.3em;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        .improvement-list li:empty {
+            display: none;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .mode-btn {
+            padding: 10px 24px;
+            border: 2px solid #c7d2fe;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #4f46e5;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border-color: #6366f1;
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+        }
+
+        .mode-btn:hover {
+            border-color: #818cf8;
+            transform: translateY(-2px);
+        }
+
+        .camera-container {
+            display: none !important;
+            text-align: center;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .camera-container.active {
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 100%;
+            max-height: 450px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            border: 4px solid white;
+            background: #000;
+            object-fit: cover;
+            display: block;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .camera-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .camera-btn.capture {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+        }
+
+        .camera-btn.capture:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .camera-btn.stop {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            color: white;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+        }
+
+        .camera-btn.stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .camera-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .camera-error {
+            color: #ef4444;
+            margin-top: 12px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Performative Male Evaluator</h1>
+        <p class="subtitle">Upload an image or take a photo to analyze performativeness percentage</p>
+
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="uploadModeBtn" data-mode="upload">
+                📁 Upload Image
+            </button>
+            <button class="mode-btn" id="cameraModeBtn" data-mode="camera">
+                📷 Take Photo
+            </button>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">Click or drag image here</div>
+            <div class="upload-hint">Supports JPG, PNG, and other image formats</div>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="camera-container" id="cameraContainer">
+            <video id="cameraPreview" class="camera-preview" autoplay playsinline muted></video>
+            <canvas id="cameraCanvas" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button class="camera-btn capture" id="captureBtn" disabled>📸 Capture Photo</button>
+                <button class="camera-btn stop" id="stopCameraBtn" disabled>Stop Camera</button>
+            </div>
+            <div class="camera-error" id="cameraError"></div>
+        </div>
+
+        <div class="preview-container" id="previewContainer" style="display: none;">
+            <img id="previewImage" class="preview-image" alt="Preview">
+            <button class="analyze-btn" id="analyzeBtn">Analyze Image</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing image with Gemini Vision AI...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <div class="score-container">
+                <div class="score-circle">
+                    <div>
+                        <span class="score-percentage" id="scorePercentage">0%</span>
+                        <div class="score-label">Performativeness Score</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detected-items">
+                <h3>Detected Characteristics</h3>
+                <div id="categoryBadges"></div>
+                <h3 style="margin-top: 20px;">Detected Items</h3>
+                <ul class="item-list" id="itemList"></ul>
+            </div>
+
+            <div class="improvement-suggestions" id="improvementSection" style="display: none;">
+                <h3>🚀 How to Reach 100%</h3>
+                <p class="improvement-intro" id="improvementIntro">Here's how you can improve your performativeness score:</p>
+                <ul class="improvement-list" id="improvementList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const scorePercentage = document.getElementById('scorePercentage');
+        const categoryBadges = document.getElementById('categoryBadges');
+        const itemList = document.getElementById('itemList');
+        const improvementSection = document.getElementById('improvementSection');
+        const improvementList = document.getElementById('improvementList');
+        
+        // Camera elements
+        const uploadModeBtn = document.getElementById('uploadModeBtn');
+        const cameraModeBtn = document.getElementById('cameraModeBtn');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const cameraError = document.getElementById('cameraError');
+
+        let currentImageData = null;
+        let currentStream = null;
+        let currentMode = 'upload';
+
+        // Mode toggle
+        uploadModeBtn.addEventListener('click', () => switchMode('upload'));
+        cameraModeBtn.addEventListener('click', () => switchMode('camera'));
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            if (mode === 'upload') {
+                uploadModeBtn.classList.add('active');
+                cameraModeBtn.classList.remove('active');
+                uploadArea.style.display = 'block';
+                cameraContainer.classList.remove('active');
+                stopCamera();
+            } else {
+                cameraModeBtn.classList.add('active');
+                uploadModeBtn.classList.remove('active');
+                uploadArea.style.display = 'none';
+                
+                // Force display the camera container
+                cameraContainer.style.display = 'block';
+                cameraContainer.classList.add('active');
+                
+                // Ensure video element is visible
+                cameraPreview.style.display = 'block';
+                cameraPreview.style.visibility = 'visible';
+                
+                console.log('Camera container should be visible now');
+                console.log('Container display:', window.getComputedStyle(cameraContainer).display);
+                console.log('Video element:', cameraPreview);
+                
+                // Wait a bit longer and ensure element is in view before starting camera
+                setTimeout(() => {
+                    // Double check visibility
+                    const rect = cameraContainer.getBoundingClientRect();
+                    console.log('Camera container rect:', rect);
+                    
+                    if (rect.width > 0 && rect.height > 0) {
+                        console.log('Container is visible, starting camera...');
+                        startCamera();
+                    } else {
+                        console.error('Container is not visible!');
+                        cameraError.textContent = 'Camera container is not visible. Please refresh the page.';
+                    }
+                }, 300);
+            }
+            
+            // Clear preview and results when switching modes
+            previewContainer.style.display = 'none';
+            results.classList.remove('show');
+            error.classList.remove('show');
+            currentImageData = null;
+        }
+
+        async function startCamera() {
+            console.log('=== STARTING CAMERA ===');
+            cameraError.textContent = '';
+            captureBtn.disabled = true;
+            stopCameraBtn.disabled = true;
+            
+            // Stop any existing stream first
+            if (currentStream) {
+                console.log('Stopping existing stream...');
+                stopCamera();
+                // Wait a moment for stream to fully stop
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            // Check if we're on a secure context (HTTPS or localhost)
+            const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            console.log('Secure context:', isSecureContext, 'Protocol:', location.protocol, 'Hostname:', location.hostname);
+            
+            if (!isSecureContext) {
+                cameraError.textContent = 'Camera access requires HTTPS or localhost. Please use HTTPS or run on localhost.';
+                console.error('Not a secure context!');
+                return;
+            }
+            
+            try {
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices) {
+                    throw new Error('navigator.mediaDevices is not available. Your browser may not support camera access.');
+                }
+                
+                if (!navigator.mediaDevices.getUserMedia) {
+                    throw new Error('getUserMedia is not available. Your browser may not support camera access.');
+                }
+                
+                console.log('getUserMedia is available');
+                
+                // First, try with simple constraints to ensure we get permission prompt
+                console.log('Requesting camera access with simple constraints...');
+                let stream;
+                
+                try {
+                    // Start with simplest possible constraints
+                    const simpleConstraints = { video: true };
+                    console.log('Trying constraints:', simpleConstraints);
+                    stream = await navigator.mediaDevices.getUserMedia(simpleConstraints);
+                    console.log('✓ Camera stream obtained with simple constraints');
+                } catch (simpleErr) {
+                    console.log('Simple constraints failed:', simpleErr.name, simpleErr.message);
+                    
+                    // Try with front-facing camera preference
+                    try {
+                        const constraints = {
+                            video: {
+                                facingMode: 'user'
+                            }
+                        };
+                        console.log('Trying constraints:', constraints);
+                        stream = await navigator.mediaDevices.getUserMedia(constraints);
+                        console.log('✓ Camera stream obtained with front-facing preference');
+                    } catch (frontErr) {
+                        console.log('Front-facing failed:', frontErr.name, frontErr.message);
+                        throw simpleErr; // Throw the original error
+                    }
+                }
+                
+                if (!stream) {
+                    throw new Error('Failed to obtain camera stream');
+                }
+                
+                console.log('Stream obtained:', stream);
+                console.log('Video tracks:', stream.getVideoTracks());
+                
+                currentStream = stream;
+                
+                // Set the stream to the video element
+                cameraPreview.srcObject = stream;
+                console.log('Stream assigned to video element');
+                
+                // Ensure video element is ready
+                if (cameraPreview.readyState >= 2) {
+                    // Video is already loaded
+                    console.log('Video ready state:', cameraPreview.readyState);
+                    try {
+                        await cameraPreview.play();
+                        console.log('✓ Video is playing');
+                        captureBtn.disabled = false;
+                        stopCameraBtn.disabled = false;
+                        cameraError.textContent = '';
+                    } catch (playErr) {
+                        console.error('Error playing video:', playErr);
+                        cameraError.textContent = 'Error playing video. Please try again.';
+                    }
+                } else {
+                    // Wait for video to load
+                    cameraPreview.onloadedmetadata = async () => {
+                        console.log('Video metadata loaded, readyState:', cameraPreview.readyState);
+                        try {
+                            await cameraPreview.play();
+                            console.log('✓ Video is playing after metadata load');
+                            captureBtn.disabled = false;
+                            stopCameraBtn.disabled = false;
+                            cameraError.textContent = '';
+                        } catch (playErr) {
+                            console.error('Error playing video after metadata:', playErr);
+                            cameraError.textContent = 'Error playing video. Please try again.';
+                        }
+                    };
+                    
+                    // Also try to play immediately (in case metadata is already loaded)
+                    cameraPreview.play().then(() => {
+                        console.log('✓ Video started playing immediately');
+                        captureBtn.disabled = false;
+                        stopCameraBtn.disabled = false;
+                        cameraError.textContent = '';
+                    }).catch(err => {
+                        console.log('Immediate play failed, waiting for metadata...', err);
+                    });
+                }
+                
+                // Handle stream ending
+                stream.getVideoTracks().forEach(track => {
+                    track.addEventListener('ended', () => {
+                        console.log('Camera track ended');
+                        stopCamera();
+                        cameraError.textContent = 'Camera stream ended. Click "Take Photo" again to restart.';
+                    });
+                });
+                
+                // Handle errors on the video element
+                cameraPreview.onerror = (err) => {
+                    console.error('Video element error:', err);
+                    cameraError.textContent = 'Error displaying camera preview. Please try again.';
+                };
+                
+                // Monitor video element state
+                cameraPreview.addEventListener('playing', () => {
+                    console.log('✓ Video is now playing');
+                    cameraError.textContent = '';
+                });
+                
+                cameraPreview.addEventListener('error', (e) => {
+                    console.error('Video error event:', e);
+                });
+                
+            } catch (err) {
+                console.error('=== CAMERA ERROR ===');
+                console.error('Error name:', err.name);
+                console.error('Error message:', err.message);
+                console.error('Full error:', err);
+                
+                let errorMessage = 'Unable to access camera. ';
+                
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMessage = 'Camera permission denied. Please allow camera access in your browser settings and try again.';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    errorMessage = 'No camera found on your device. Please use the upload option instead.';
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    errorMessage = 'Camera is being used by another application. Please close other apps using the camera and try again.';
+                } else if (err.name === 'OverconstrainedError') {
+                    errorMessage = 'Camera constraints not supported by your device.';
+                } else if (err.name === 'SecurityError') {
+                    errorMessage = 'Camera access blocked due to security restrictions. Please use HTTPS or localhost.';
+                } else if (err.name === 'TypeError') {
+                    errorMessage = 'Camera API not available. Your browser may not support camera access.';
+                } else {
+                    errorMessage += err.message || 'Unknown error. Please check browser console for details.';
+                }
+                
+                cameraError.textContent = errorMessage;
+                captureBtn.disabled = true;
+                stopCameraBtn.disabled = true;
+                
+                // Show error in main error area too
+                showError(errorMessage);
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => {
+                    track.stop();
+                    console.log('Stopped track:', track.kind);
+                });
+                currentStream = null;
+            }
+            if (cameraPreview) {
+                cameraPreview.srcObject = null;
+                cameraPreview.onloadedmetadata = null;
+                cameraPreview.onerror = null;
+            }
+            captureBtn.disabled = true;
+            stopCameraBtn.disabled = true;
+        }
+
+        stopCameraBtn.addEventListener('click', stopCamera);
+
+        captureBtn.addEventListener('click', () => {
+            if (!currentStream) return;
+            
+            // Set canvas dimensions to match video
+            cameraCanvas.width = cameraPreview.videoWidth;
+            cameraCanvas.height = cameraPreview.videoHeight;
+            
+            // Draw video frame to canvas
+            const ctx = cameraCanvas.getContext('2d');
+            ctx.drawImage(cameraPreview, 0, 0);
+            
+            // Convert canvas to base64 image
+            const imageData = cameraCanvas.toDataURL('image/jpeg', 0.9);
+            
+            // Use the captured image
+            currentImageData = imageData;
+            previewImage.src = imageData;
+            previewContainer.style.display = 'block';
+            results.classList.remove('show');
+            error.classList.remove('show');
+            
+            // Stop camera after capture
+            stopCamera();
+            
+            // Switch back to upload mode to show the preview and analyze button
+            uploadModeBtn.classList.add('active');
+            cameraModeBtn.classList.remove('active');
+            cameraContainer.classList.remove('active');
+            uploadArea.style.display = 'block';
+            currentMode = 'upload';
+        });
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            if (currentMode === 'upload') {
+                imageInput.click();
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleImageFile(files[0]);
+            }
+        });
+
+        // File input change
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageFile(e.target.files[0]);
+            }
+        });
+
+        function handleImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please upload an image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                previewImage.src = currentImageData;
+                previewContainer.style.display = 'block';
+                results.classList.remove('show');
+                error.classList.remove('show');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Analyze button
+        analyzeBtn.addEventListener('click', async () => {
+            if (!currentImageData) {
+                showError('Please upload an image first');
+                return;
+            }
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+            error.classList.remove('show');
+            analyzeBtn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: currentImageData
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.classList.remove('show');
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            scorePercentage.textContent = data.percentage + '%';
+            
+            // Update score circle color based on percentage
+            const scoreCircle = document.querySelector('.score-circle');
+            if (data.percentage >= 70) {
+                scoreCircle.style.background = 'linear-gradient(135deg, #ec4899 0%, #f472b6 50%, #fb7185 100%)';
+            } else if (data.percentage >= 40) {
+                scoreCircle.style.background = 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fcd34d 100%)';
+            } else {
+                scoreCircle.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)';
+            }
+            scoreCircle.style.backgroundSize = '200% 200%';
+
+            // Display category badges
+            categoryBadges.innerHTML = '';
+            if (data.category_details && data.category_details.length > 0) {
+                data.category_details.forEach(category => {
+                    const badge = document.createElement('span');
+                    badge.className = 'category-badge';
+                    badge.textContent = category.name + ` (+${category.weight}pts)`;
+                    categoryBadges.appendChild(badge);
+                });
+            } else {
+                categoryBadges.innerHTML = '<p style="color: #999;">No characteristics detected</p>';
+            }
+
+            // Display detected items
+            itemList.innerHTML = '';
+            if (data.detected_items && data.detected_items.length > 0) {
+                data.detected_items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    itemList.appendChild(li);
+                });
+            } else {
+                itemList.innerHTML = '<li style="color: #999;">No items detected</li>';
+            }
+
+            // Display improvement suggestions (only if score is less than 100%)
+            improvementList.innerHTML = '';
+            if (data.percentage >= 100) {
+                improvementSection.style.display = 'none';
+            } else if (data.improvement_suggestions && data.improvement_suggestions.length > 0) {
+                // Display all suggestions (they should already be formatted properly)
+                data.improvement_suggestions.forEach(suggestion => {
+                    // Skip very short or header-like messages
+                    if (suggestion.length > 15 && !suggestion.toLowerCase().includes('focus on adding these high-value items')) {
+                        const li = document.createElement('li');
+                        li.textContent = suggestion;
+                        improvementList.appendChild(li);
+                    }
+                });
+                
+                // If no suggestions were added, show a fallback
+                if (improvementList.children.length === 0) {
+                    improvementList.innerHTML = '<li>Keep adding performative items to reach 100%! Focus on high-value items like feminist literature, tote bags, and matcha lattes.</li>';
+                }
+                
+                improvementSection.style.display = 'block';
+            } else {
+                // Fallback message if no suggestions
+                improvementSection.style.display = 'block';
+                improvementList.innerHTML = '<li>Keep adding performative items to reach 100%! Focus on high-value items like feminist literature, tote bags, and matcha lattes.</li>';
+            }
+
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+        }
+    </script>
+</body>
+</html>
+
