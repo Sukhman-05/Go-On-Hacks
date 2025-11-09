@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0a0f;
+  color: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a24;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00d4ff;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00a8cc;
+}
+
+/* DNA Helix animation */
+@keyframes dna-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.dna-loader {
+  animation: dna-rotate 2s linear infinite;
+}
+
+/* Glow effect */
+.glow {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+/* Button hover effects */
+.btn-primary {
+  @apply bg-primary text-dark font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+}
+
+.btn-primary:hover {
+  @apply transform scale-105 glow;
+}
+
+.btn-secondary {
+  @apply bg-secondary text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200;
+}
+
+.btn-secondary:hover {
+  @apply transform scale-105 glow-purple;
+}
+
