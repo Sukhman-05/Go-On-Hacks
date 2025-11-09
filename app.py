@@ -3,6 +3,7 @@ from flask_cors import CORS
 import google.generativeai as genai
 import os
 import base64
+import random
 from io import BytesIO
 from PIL import Image
 import json
@@ -131,6 +132,24 @@ def calculate_performativeness_score(detected_items):
     percentage = min((total_score / max_possible_score) * 100, 100)
     return round(percentage, 1), detected_categories, total_score, max_possible_score
 
+def generate_brutal_roast(percentage, detected_categories):
+    """Generate an unhinged, brutal roast for users below 30% performativeness"""
+    roasts = [
+        f"Bruh. {percentage}%? You call THIS performative? A rock has more aesthetic sense than whatever tragic display of basic-ness you've got going on. You're not even trying - this looks like you got dressed in the dark by someone who's never heard of Instagram. WHERE are the feminist books? WHERE is the matcha? WHERE is the tote bag that screams 'I care about the environment but only if it's cute'? This is giving 'I shop at Target and think that's a personality trait' energy. EMBARRASSING.",
+        
+        f"{percentage}%? HONEY. This is NOT it. This is giving 'my personality is my major' and 'I've never been to a thrift store' and 'I think a plain white tee is a statement piece.' You're out here looking like you discovered aesthetics yesterday and immediately gave up. Not a single tote bag in sight? No matcha? No bell hooks books strategically placed? This isn't performative culture, this is PERFORMANCE ART of how to miss the point entirely. Try harder, or don't, honestly.",
+        
+        f"Okay so we're at {percentage}% which means... you're basically not even playing the game. This is like showing up to a fashion show in sweatpants and being surprised when you don't win. Where's the VIBE? Where's the AESTHETIC? Where's ANYTHING that suggests you understand what performative culture even is? You're out here raw-dogging reality with zero aesthetic curation and it shows. This is giving 'I don't own a single plant' and 'coffee is just brown water to me' energy. TRAGIC.",
+        
+        f"{percentage}%? SWEETIE. This is so sad it's almost impressive. You've managed to create a look that says absolutely nothing except 'I exist and that's my whole personality.' No tote bag, no matcha latte, no feminist literature, no NOTHING. This is the aesthetic equivalent of a beige wall. You're not even in the ballpark - you're in the parking lot of a different stadium entirely. This isn't performative culture, this is performative FAILURE. Do better or don't, I'm not your mom.",
+        
+        f"LISTEN. {percentage}% is not a score, it's a CRY FOR HELP. You've got the performativeness of a piece of plain toast. No offense to toast, at least it's useful. This? This is just... there. No matcha, no tote bags, no vintage finds, no INDICATION that you understand what's happening here. You're giving 'I bought this shirt at a gas station' when you should be giving 'I curated this look from three different thrift stores and a feminist bookstore.' This is giving NOTHING. Less than nothing. Negative vibes.",
+        
+        f"Okay so {percentage}% means you're basically a blank canvas, except blank canvases have more potential. This is the performative equivalent of showing up to a potluck empty-handed and asking if anyone has extra plates. WHERE IS EVERYTHING? No books, no matcha, no aesthetic items, just... void. Empty space. Nothing. You're not even trying to be performative, you're just EXISTING and calling it a day. This isn't a vibe, it's a VACUUM. Step it up or step out, honestly.",
+    ]
+    
+    return random.choice(roasts)
+
 def generate_improvement_suggestions(detected_categories):
     """Generate improvement suggestions based on missing categories"""
     suggestions = []
@@ -223,14 +242,25 @@ What to do:
 - For books: if you see books that seem feminist or written by feminist authors (even if you can't read the exact title), mention them. Look for books by women authors, books about feminism, gender, or social justice topics
 - Describe what you see in a natural, casual way
 - Don't worry about exact title matches - if a book looks like it could be feminist literature, mention it
+- Be thorough and observant - look at the background, small details, and context clues
 
 Format your response in two sections:
 
 SECTION 1 - DETECTED ITEMS:
-List the items you found that match the categories. One item per line with a dash. Be specific but flexible - if you see a book that looks like feminist literature (even if you can't see the exact title), mention it. Describe what you observe naturally.
+List the items you found that match the categories. One item per line with a dash. Be specific but flexible - if you see a book that looks like feminist literature (even if you can't see the exact title), mention it. Describe what you observe naturally. Provide context about what you see - mention the setting, style, and any relevant details that relate to the performative characteristics.
 
 SECTION 2 - IMPROVEMENT SUGGESTIONS:
-Give some relaxed, friendly suggestions for items that could boost the performativeness score. Keep it casual and light - like you're giving friendly advice to a friend. Focus on high-value items from the categories that seem to be missing, but don't be too prescriptive. Use a casual, conversational tone like "maybe add..." or "could throw in..." or "might help if you..."
+Give detailed, helpful feedback about what could boost the performativeness score. Provide more context and explanation:
+- Explain WHY certain items would help (e.g., "A matcha latte would fit the aesthetic because it's associated with mindful, trendy coffee culture")
+- Give specific examples and descriptions
+- Mention how items could be styled or positioned
+- Discuss the overall vibe and what's missing
+- Be conversational but informative - like you're giving detailed, thoughtful advice
+- Focus on high-value items from the categories that seem to be missing
+- Explain the aesthetic and cultural context behind suggestions
+- Provide actionable, specific recommendations
+
+Be thorough in your feedback - the user wants to understand not just what to add, but why and how it would improve their performativeness score. Give them real insights, not just quick tips.
 
 That's it! Just look at the image and share what you find. Be flexible with book identification - if it looks like it could be feminist literature, include it."""
         
@@ -248,7 +278,26 @@ That's it! Just look at the image and share what you find. Be flexible with book
                 [prompt, image],
                 generation_config=generation_config
             )
-            detected_items_text = response.text if response.text else ""
+            
+            # Safely get response text
+            try:
+                detected_items_text = response.text if hasattr(response, 'text') and response.text else ""
+            except Exception as e:
+                print(f"Error accessing response text: {e}")
+                detected_items_text = ""
+            
+            # If no text, try to get from candidates
+            if not detected_items_text:
+                try:
+                    if hasattr(response, 'candidates') and response.candidates:
+                        if len(response.candidates) > 0:
+                            candidate = response.candidates[0]
+                            if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                                if len(candidate.content.parts) > 0:
+                                    detected_items_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
+                except Exception as e:
+                    print(f"Error accessing response candidates: {e}")
+                    detected_items_text = ""
             
             # Validate that we got a substantial response
             if detected_items_text and len(detected_items_text.strip()) < 100:
@@ -268,10 +317,24 @@ Just list what you see that might match the performative male culture categories
                         [enhanced_prompt, image],
                         generation_config=generation_config
                     )
-                    if enhanced_response.text and len(enhanced_response.text.strip()) > len(detected_items_text.strip()):
-                        detected_items_text = enhanced_response.text
-                except:
+                    enhanced_text = ""
+                    try:
+                        enhanced_text = enhanced_response.text if hasattr(enhanced_response, 'text') and enhanced_response.text else ""
+                    except:
+                        # Try alternative way to get text
+                        try:
+                            if hasattr(enhanced_response, 'candidates') and enhanced_response.candidates and len(enhanced_response.candidates) > 0:
+                                candidate = enhanced_response.candidates[0]
+                                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and len(candidate.content.parts) > 0:
+                                    enhanced_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
+                        except:
+                            pass
+                    
+                    if enhanced_text and len(enhanced_text.strip()) > len(detected_items_text.strip()):
+                        detected_items_text = enhanced_text
+                except Exception as e:
                     # If enhanced analysis fails, continue with original response
+                    print(f"Enhanced analysis failed: {e}")
                     pass
         except Exception as e:
             error_msg = str(e)
@@ -286,61 +349,118 @@ Just list what you see that might match the performative male culture categories
         detected_items = []
         improvement_suggestions = []
         
-        # Find the split point between detected items and suggestions
-        lines = detected_items_text.split('\n')
-        items_end_index = len(lines)
-        suggestion_keywords = ['improvement', 'suggestions', 'to improve', 'could be added', 'missing', 'section 2']
+        # Ensure we have text to parse
+        if not detected_items_text or not detected_items_text.strip():
+            print("Warning: Empty response from Gemini API")
+            detected_items_text = "No items detected in the image."
         
-        # Find where suggestions section starts
-        for i, line in enumerate(lines):
-            line_lower = line.lower()
-            if any(keyword in line_lower for keyword in suggestion_keywords):
-                # Check if this line actually starts suggestions (not just mentions the word)
-                if 'section' in line_lower or 'improve' in line_lower or 'suggestions' in line_lower:
-                    items_end_index = i
-                    break
+        # Find the split point between detected items and suggestions
+        try:
+            lines = detected_items_text.split('\n')
+            items_end_index = len(lines) if lines else 0
+            suggestion_keywords = ['improvement', 'suggestions', 'to improve', 'could be added', 'missing', 'section 2']
+            
+            # Find where suggestions section starts
+            for i, line in enumerate(lines):
+                if not line:  # Skip empty lines
+                    continue
+                line_lower = line.lower()
+                if any(keyword in line_lower for keyword in suggestion_keywords):
+                    # Check if this line actually starts suggestions (not just mentions the word)
+                    if 'section' in line_lower or 'improve' in line_lower or 'suggestions' in line_lower:
+                        items_end_index = i
+                        break
+        except Exception as e:
+            print(f"Error parsing response lines: {e}")
+            lines = [detected_items_text]
+            items_end_index = len(lines)
         
         # Parse detected items (everything before suggestions)
-        items_section = '\n'.join(lines[:items_end_index])
-        for line in items_section.split('\n'):
-            line = line.strip()
-            if line and not any(keyword in line.lower() for keyword in ['section', 'detected items', 'format', 'example', 'instructions']):
-                # Remove bullet points, dashes, numbers, etc.
-                cleaned_line = line
-                if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
-                    cleaned_line = cleaned_line[1:].strip()
-                # Remove numbered lists
-                if cleaned_line and cleaned_line[0].isdigit() and ('.' in cleaned_line[:3] or ')' in cleaned_line[:3]):
-                    parts = cleaned_line.split('.', 1) if '.' in cleaned_line[:3] else cleaned_line.split(')', 1)
-                    if len(parts) > 1:
-                        cleaned_line = parts[1].strip()
-                if cleaned_line and len(cleaned_line) > 2:
-                    detected_items.append(cleaned_line)
+        items_section = ""
+        try:
+            items_section = '\n'.join(lines[:items_end_index]) if lines and items_end_index > 0 else ""
+            for line in items_section.split('\n'):
+                try:
+                    line = line.strip()
+                    if line and not any(keyword in line.lower() for keyword in ['section', 'detected items', 'format', 'example', 'instructions']):
+                        # Remove bullet points, dashes, numbers, etc.
+                        cleaned_line = line
+                        if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
+                            cleaned_line = cleaned_line[1:].strip()
+                        # Remove numbered lists
+                        if cleaned_line and len(cleaned_line) > 0:
+                            # Safely check first character
+                            first_char = cleaned_line[0] if cleaned_line else ''
+                            if first_char.isdigit():
+                                # Check if there's a delimiter in the first few characters
+                                check_prefix = cleaned_line[:min(3, len(cleaned_line))]
+                                if '.' in check_prefix:
+                                    parts = cleaned_line.split('.', 1)
+                                    if len(parts) > 1 and parts[1].strip():
+                                        cleaned_line = parts[1].strip()
+                                elif ')' in check_prefix:
+                                    parts = cleaned_line.split(')', 1)
+                                    if len(parts) > 1 and parts[1].strip():
+                                        cleaned_line = parts[1].strip()
+                        if cleaned_line and len(cleaned_line) > 2:
+                            detected_items.append(cleaned_line)
+                except Exception as e:
+                    print(f"Error parsing line '{line}': {e}")
+                    continue
+        except Exception as e:
+            print(f"Error parsing items section: {e}")
+            # Fallback: just use the raw text
+            if items_section:
+                detected_items = [items_section]
+            else:
+                items_section = detected_items_text[:500]  # Use first 500 chars as fallback
+                detected_items = [items_section] if items_section else []
         
         # Parse improvement suggestions (everything after the split point)
-        suggestions_section = '\n'.join(lines[items_end_index:])
-        for line in suggestions_section.split('\n'):
-            line = line.strip()
-            # Skip header lines
-            if any(keyword in line.lower() for keyword in ['section', 'format', 'example', 'instructions']):
-                continue
-            if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
-                        any(keyword in line.lower() for keyword in ['add', 'include', 'wear', 'display', 'take'])):
-                # Remove bullet points, dashes, numbers, etc.
-                cleaned_line = line
-                if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
-                    cleaned_line = cleaned_line[1:].strip()
-                # Remove numbered lists
-                if cleaned_line and cleaned_line[0].isdigit() and ('.' in cleaned_line[:3] or ')' in cleaned_line[:3]):
-                    parts = cleaned_line.split('.', 1) if '.' in cleaned_line[:3] else cleaned_line.split(')', 1)
-                    if len(parts) > 1:
-                        cleaned_line = parts[1].strip()
-                if cleaned_line and len(cleaned_line) > 10:  # Longer threshold for suggestions
-                    improvement_suggestions.append(cleaned_line)
+        try:
+            suggestions_section = '\n'.join(lines[items_end_index:]) if lines and items_end_index < len(lines) else ""
+            for line in suggestions_section.split('\n'):
+                try:
+                    line = line.strip()
+                    # Skip header lines
+                    if any(keyword in line.lower() for keyword in ['section', 'format', 'example', 'instructions']):
+                        continue
+                    if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
+                                any(keyword in line.lower() for keyword in ['add', 'include', 'wear', 'display', 'take'])):
+                        # Remove bullet points, dashes, numbers, etc.
+                        cleaned_line = line
+                        if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
+                            cleaned_line = cleaned_line[1:].strip()
+                        # Remove numbered lists
+                        if cleaned_line and len(cleaned_line) > 0:
+                            # Safely check first character
+                            first_char = cleaned_line[0] if cleaned_line else ''
+                            if first_char.isdigit():
+                                # Check if there's a delimiter in the first few characters
+                                check_prefix = cleaned_line[:min(3, len(cleaned_line))]
+                                if '.' in check_prefix:
+                                    parts = cleaned_line.split('.', 1)
+                                    if len(parts) > 1 and parts[1].strip():
+                                        cleaned_line = parts[1].strip()
+                                elif ')' in check_prefix:
+                                    parts = cleaned_line.split(')', 1)
+                                    if len(parts) > 1 and parts[1].strip():
+                                        cleaned_line = parts[1].strip()
+                        if cleaned_line and len(cleaned_line) > 10:  # Longer threshold for suggestions
+                            improvement_suggestions.append(cleaned_line)
+                except Exception as e:
+                    print(f"Error parsing suggestion line '{line}': {e}")
+                    continue
+        except Exception as e:
+            print(f"Error parsing suggestions section: {e}")
+            improvement_suggestions = []
         
         # If no items parsed, try splitting by sentences (fallback)
-        if not detected_items:
-            detected_items = [s.strip() for s in items_section.split('.') if s.strip() and len(s.strip()) > 2]
+        if not detected_items and items_section:
+            try:
+                detected_items = [s.strip() for s in items_section.split('.') if s.strip() and len(s.strip()) > 2]
+            except:
+                detected_items = []
         
         # Calculate performativeness score
         percentage, detected_categories, score, max_score = calculate_performativeness_score(detected_items)
@@ -369,6 +489,11 @@ Just list what you see that might match the performative male culture categories
         
         improvement_suggestions = generated_suggestions
         
+        # Generate brutal roast if percentage is below 30%
+        roast = None
+        if percentage < 30:
+            roast = generate_brutal_roast(percentage, detected_categories)
+        
         # Get category details
         category_details = []
         for category in detected_categories:
@@ -385,7 +510,8 @@ Just list what you see that might match the performative male culture categories
             'category_details': category_details,
             'score': score,
             'max_score': max_score,
-            'improvement_suggestions': improvement_suggestions
+            'improvement_suggestions': improvement_suggestions,
+            'roast': roast
         })
         
     except Exception as e:

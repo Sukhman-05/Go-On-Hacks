@@ -372,6 +372,69 @@
             animation: fadeIn 0.3s ease-in;
         }
 
+        .roast-section {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #fca5a5 100%);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 32px;
+            border: 3px solid #ef4444;
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2);
+            animation: roastPulse 2s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .roast-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: roastShimmer 3s linear infinite;
+        }
+
+        @keyframes roastPulse {
+            0%, 100% {
+                box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.2);
+            }
+            50% {
+                box-shadow: 0 12px 24px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.4);
+            }
+        }
+
+        @keyframes roastShimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .roast-section h3 {
+            color: #7f1d1d;
+            margin-bottom: 16px;
+            font-size: 1.8em;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .roast-text {
+            color: #991b1b;
+            font-size: 1.15em;
+            line-height: 1.8;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+        }
+
         .improvement-suggestions {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             border-radius: 16px;
@@ -603,6 +666,11 @@
                 <ul class="item-list" id="itemList"></ul>
             </div>
 
+            <div class="roast-section" id="roastSection" style="display: none;">
+                <h3>💀 THE VERDICT 💀</h3>
+                <p class="roast-text" id="roastText"></p>
+            </div>
+
             <div class="improvement-suggestions" id="improvementSection" style="display: none;">
                 <h3>🚀 How to Reach 100%</h3>
                 <p class="improvement-intro" id="improvementIntro">Here's how you can improve your performativeness score:</p>
@@ -625,6 +693,8 @@
         const itemList = document.getElementById('itemList');
         const improvementSection = document.getElementById('improvementSection');
         const improvementList = document.getElementById('improvementList');
+        const roastSection = document.getElementById('roastSection');
+        const roastText = document.getElementById('roastText');
         
         // Camera elements
         const uploadModeBtn = document.getElementById('uploadModeBtn');
@@ -1046,6 +1116,14 @@
                 });
             } else {
                 itemList.innerHTML = '<li style="color: #999;">No items detected</li>';
+            }
+
+            // Display roast if percentage is below 30%
+            if (data.roast) {
+                roastText.textContent = data.roast;
+                roastSection.style.display = 'block';
+            } else {
+                roastSection.style.display = 'none';
             }
 
             // Display improvement suggestions (only if score is less than 100%)
