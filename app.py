@@ -131,6 +131,65 @@ def calculate_performativeness_score(detected_items):
     percentage = min((total_score / max_possible_score) * 100, 100)
     return round(percentage, 1), detected_categories, total_score, max_possible_score
 
+def generate_roasts(percentage, detected_categories, detected_items):
+    """Generate mean roasting comments for scores below 30%"""
+    if percentage >= 30:
+        return []
+    
+    roasts = [
+        "Bro, where's the performativeness? This is giving 'I just discovered what a tote bag is' energy.",
+        "This score is lower than your chances of getting a match on Hinge with this aesthetic.",
+        "You call this performative? My grandma's Facebook profile picture is more performative than this.",
+        "This is what happens when you try to be performative but forget to actually perform.",
+        "Not even a single feminist book in sight? We're not in 2015 anymore, step it up.",
+        "Where's the matcha? Where's the tote bag? Where's the effort? Nowhere, that's where.",
+        "This is giving 'I googled performative male culture 5 minutes ago' vibes.",
+        "You've got the confidence of a 100% score but the aesthetic of a 0% score.",
+        "Even a basic white girl's Instagram from 2016 had more performative elements than this.",
+        "This is so low it's almost impressive. Almost.",
+        "You're missing so many categories, it's like you're actively avoiding being performative.",
+        "This score is a cry for help. Where are the plants? The books? The VIBE?",
+        "Not even trying, are we? This is giving 'I'll do it tomorrow' energy.",
+        "You know what's more performative than this? Literally anything else.",
+        "This is what happens when you skip the performative male starter pack entirely.",
+        "Bro, you're missing the whole point. This isn't a suggestion box, it's a requirement list.",
+        "Even your reflection in a coffee shop window would score higher than this.",
+        "This is giving 'I thought performative meant I could just exist' energy.",
+        "You've achieved the impossible: being less performative than a blank canvas.",
+        "Where's the effort? Where's the aesthetic? Where's the self-awareness? Nowhere to be found."
+    ]
+    
+    # Add category-specific roasts based on what's missing
+    all_categories = set(PERFORMATIVE_CHARACTERISTICS.keys())
+    missing_categories = all_categories - detected_categories
+    
+    if "feminist_literature" in missing_categories:
+        roasts.append("No feminist books? Not even trying to look like you care about women's issues, huh?")
+    
+    if "matcha_latte" in missing_categories:
+        roasts.append("No matcha? You're really out here living like it's 2010.")
+    
+    if "tote_bag" in missing_categories:
+        roasts.append("Where's the tote bag? How are you even carrying things? With your hands? How primitive.")
+    
+    if len(detected_items) == 0:
+        roasts.append("Zero items detected. Not even trying, are we? This is embarrassing.")
+    elif len(detected_items) <= 2:
+        roasts.append(f"Only {len(detected_items)} item(s)? That's not performative, that's just existing.")
+    
+    # Return 2-3 random roasts
+    import random
+    if len(roasts) == 0:
+        return ["This score is so low, we don't even know what to say."]
+    elif len(roasts) == 1:
+        return roasts
+    elif len(roasts) == 2:
+        return roasts
+    else:
+        # Return 2-3 random roasts
+        num_roasts = min(3, len(roasts))
+        return random.sample(roasts, num_roasts)
+
 def generate_improvement_suggestions(detected_categories):
     """Generate improvement suggestions based on missing categories"""
     suggestions = []
@@ -509,6 +568,7 @@ Just list what you see - remember to be generous and not too strict with your in
         
         # If we still have no detected items and no text was extracted, return a helpful message
         if not detected_items and not detected_items_text:
+            # This should trigger roasts since score will be 0%
             return jsonify({
                 'percentage': 0,
                 'detected_items': ["No items could be detected from the image. The image may have been blocked or the response was empty."],
@@ -516,7 +576,8 @@ Just list what you see - remember to be generous and not too strict with your in
                 'category_details': [],
                 'score': 0,
                 'max_score': sum(char["weight"] for char in PERFORMATIVE_CHARACTERISTICS.values()),
-                'improvement_suggestions': generate_improvement_suggestions(set())
+                'improvement_suggestions': generate_improvement_suggestions(set()),
+                'roasts': generate_roasts(0, set(), [])  # Score is 0%, so generate roasts
             })
         
         # Calculate performativeness score
@@ -555,6 +616,23 @@ Just list what you see - remember to be generous and not too strict with your in
                 "weight": PERFORMATIVE_CHARACTERISTICS[category]["weight"]
             })
         
+        # Generate roasts if score is below 30%
+        roasts = []
+        if percentage < 30:
+            try:
+                roasts = generate_roasts(percentage, detected_categories, detected_items)
+                print(f"✅ Generated {len(roasts)} roasts for score {percentage}%")
+                if len(roasts) == 0:
+                    print("⚠️ WARNING: generate_roasts returned empty list!")
+                    roasts = ["This score is embarrassingly low. Step up your performative game."]
+            except Exception as e:
+                print(f"❌ Error generating roasts: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                roasts = ["Error generating roasts, but your score is still terrible."]
+        else:
+            print(f"ℹ️ No roasts generated - score {percentage}% is >= 30% (roasts only show for < 30%)")
+        
         return jsonify({
             'percentage': percentage,
             'detected_items': detected_items,
@@ -562,7 +640,8 @@ Just list what you see - remember to be generous and not too strict with your in
             'category_details': category_details,
             'score': score,
             'max_score': max_score,
-            'improvement_suggestions': improvement_suggestions
+            'improvement_suggestions': improvement_suggestions,
+            'roasts': roasts
         })
         
     except Exception as e:

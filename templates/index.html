@@ -435,6 +435,69 @@
             display: none;
         }
 
+        .roasts-section {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-radius: 16px;
+            padding: 28px;
+            margin-top: 32px;
+            border: 1px solid #f87171;
+            box-shadow: 0 4px 6px rgba(239, 68, 68, 0.1);
+        }
+
+        .roasts-section h3 {
+            color: #991b1b;
+            margin-bottom: 12px;
+            font-size: 1.5em;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .roasts-intro {
+            color: #7f1d1d;
+            margin-bottom: 20px;
+            font-style: italic;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+
+        .roasts-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 12px;
+        }
+
+        .roasts-list li {
+            padding: 16px 18px 16px 48px;
+            margin: 0;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #ef4444;
+            position: relative;
+            transition: all 0.2s ease;
+            color: #991b1b;
+            line-height: 1.6;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .roasts-list li:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left-color: #dc2626;
+        }
+
+        .roasts-list li::before {
+            content: "🔥";
+            position: absolute;
+            left: 16px;
+            font-size: 1.3em;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        .roasts-list li:empty {
+            display: none;
+        }
+
         .mode-toggle {
             display: flex;
             gap: 12px;
@@ -603,6 +666,12 @@
                 <ul class="item-list" id="itemList"></ul>
             </div>
 
+            <div class="roasts-section" id="roastsSection" style="display: none;">
+                <h3>🔥 The Roast</h3>
+                <p class="roasts-intro" id="roastsIntro">Oof, this score is rough. Here's what we think:</p>
+                <ul class="roasts-list" id="roastsList"></ul>
+            </div>
+
             <div class="improvement-suggestions" id="improvementSection" style="display: none;">
                 <h3>🚀 How to Reach 100%</h3>
                 <p class="improvement-intro" id="improvementIntro">Here's how you can improve your performativeness score:</p>
@@ -625,6 +694,8 @@
         const itemList = document.getElementById('itemList');
         const improvementSection = document.getElementById('improvementSection');
         const improvementList = document.getElementById('improvementList');
+        const roastsSection = document.getElementById('roastsSection');
+        const roastsList = document.getElementById('roastsList');
         
         // Camera elements
         const uploadModeBtn = document.getElementById('uploadModeBtn');
@@ -690,6 +761,8 @@
             previewContainer.style.display = 'none';
             results.classList.remove('show');
             error.classList.remove('show');
+            roastsSection.style.display = 'none';
+            improvementSection.style.display = 'none';
             currentImageData = null;
         }
 
@@ -1046,6 +1119,39 @@
                 });
             } else {
                 itemList.innerHTML = '<li style="color: #999;">No items detected</li>';
+            }
+
+            // Display roasts if score is below 30%
+            roastsList.innerHTML = '';
+            console.log('🔥 Roast Check - Percentage:', data.percentage, 'Roasts:', data.roasts);
+            
+            // Check if roasts should be displayed (score < 30%)
+            if (data.percentage < 30) {
+                if (data.roasts && Array.isArray(data.roasts) && data.roasts.length > 0) {
+                    console.log('✅ Displaying', data.roasts.length, 'roasts for score', data.percentage + '%');
+                    data.roasts.forEach(roast => {
+                        if (roast && roast.trim()) {
+                            const li = document.createElement('li');
+                            li.textContent = roast;
+                            roastsList.appendChild(li);
+                        }
+                    });
+                    
+                    // Only show if we actually added roasts to the list
+                    if (roastsList.children.length > 0) {
+                        roastsSection.style.display = 'block';
+                        console.log('✅ Roasts section is now visible');
+                    } else {
+                        console.warn('⚠️ No valid roasts to display');
+                        roastsSection.style.display = 'none';
+                    }
+                } else {
+                    console.warn('⚠️ Score is < 30% but no roasts in response. Roasts:', data.roasts);
+                    roastsSection.style.display = 'none';
+                }
+            } else {
+                console.log('ℹ️ Score is', data.percentage + '% (>= 30%), no roasts will be shown');
+                roastsSection.style.display = 'none';
             }
 
             // Display improvement suggestions (only if score is less than 100%)
