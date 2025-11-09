@@ -1,99 +1,106 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
-Get up and running in 5 minutes!
+Get up and running with the Clash Royale 3D Clone in just a few minutes!
 
 ## Prerequisites
+- Node.js v18+ installed
+- PostgreSQL installed and running
+- Terminal/Command Line
 
-- Node.js (v16+)
-- PostgreSQL (v13+)
+## Setup (5 minutes)
 
-## Setup Steps
-
-### 1. Create Database
-
+### Step 1: Install Dependencies
+From the project root, run:
 ```bash
+npm install
+npm run install:all
+```
+
+### Step 2: Setup Database
+Make sure PostgreSQL is running, then:
+```bash
+# Create database (if not exists)
 createdb sperm_racing
+
+# Run migrations and seed data
+npm run db:migrate
+npm run db:seed
 ```
 
-### 2. Backend Setup
+### Step 3: Start All Servers
+```bash
+npm start
+```
+
+This will start:
+- Backend API on `http://localhost:3001`
+- Socket.io server on `http://localhost:3002`
+- Frontend on `http://localhost:5173`
+
+## First Time Playing
+
+1. Open `http://localhost:5173` in your browser
+2. Click "Sign Up" and create an account
+3. Go to "Deck" and create your first deck (select 8 cards)
+4. Click "Battle" to find a match!
+
+## Manual Server Control
+
+If you prefer to run servers individually:
 
 ```bash
-cd backend
-npm install
-cp .env.example .env
-# Edit .env with your database credentials
-npm run migrate
-npm run seed
+# Terminal 1 - Backend API
+npm run dev:backend
+
+# Terminal 2 - Socket.io Server
+npm run dev:socket
+
+# Terminal 3 - Frontend
+npm run dev:frontend
 ```
-
-### 3. Start Backend (2 terminals)
-
-**Terminal 1 - API Server:**
-```bash
-cd backend
-npm run dev
-```
-
-**Terminal 2 - WebSocket Server:**
-```bash
-cd backend
-node src/socketIndex.js
-```
-
-### 4. Frontend Setup
-
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-### 5. Open Browser
-
-Navigate to `http://localhost:3000`
-
-**Test Login:**
-- Email: `test1@example.com`
-- Password: `password123`
-
-## That's it! 🎉
-
-You should now see the game dashboard with test data.
-
-## Quick Actions
-
-1. **Summon a Racer**: Click "Summon New Racer" (costs 100 DNA Credits)
-2. **Race**: Go to Race → Select racer → Start PvE Race
-3. **View Leaderboard**: Check rankings
-4. **Evolve**: Get a racer to 500 XP to unlock evolution
 
 ## Troubleshooting
 
-**Database connection error?**
-- Check PostgreSQL is running: `pg_isready`
-- Verify DATABASE_URL in backend/.env
+### "Port already in use"
+```bash
+# macOS/Linux
+lsof -ti:3001 | xargs kill
+lsof -ti:3002 | xargs kill
+lsof -ti:5173 | xargs kill
 
-**Port already in use?**
-- Change PORT in backend/.env
-- Change VITE_API_URL in frontend/.env
-
-**WebSocket not connecting?**
-- Ensure socketIndex.js is running
-- Check SOCKET_PORT (default 3002)
-
-## Architecture
-
+# Windows
+netstat -ano | findstr :3001
+taskkill /PID <PID> /F
 ```
-Frontend (React)     →  Backend API (Express)  →  PostgreSQL
-    ↓                        ↓
-Socket.IO Client    →  WebSocket Server
-                          (PvP Racing)
+
+### "Cannot connect to database"
+```bash
+# Check if PostgreSQL is running
+pg_ctl status
+
+# Start PostgreSQL (macOS with Homebrew)
+brew services start postgresql
+
+# Start PostgreSQL (Linux)
+sudo service postgresql start
 ```
+
+### "3D models not loading"
+```bash
+# Copy models to public folder
+cp -r KayKit_Adventurers_2.0_FREE/Characters/gltf/* frontend/public/models/characters/
+```
+
+## Next Steps
+
+- Check out the full [README.md](README.md) for detailed documentation
+- Explore the codebase in `/frontend/src` and `/backend/src`
+- Customize cards in the database seed file
+- Add your own 3D models!
 
 ## Need Help?
 
-Check the full [README.md](./README.md) for detailed documentation.
+Open an issue on GitHub or check the troubleshooting section in the main README.
 
-Happy Racing! 🏁
+Happy Gaming! 🎮
 

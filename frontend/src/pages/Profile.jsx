@@ -1,207 +1,114 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { getProfile, getRacers, getTransactions } from '../services/api';
-import { useAuthStore } from '../store/useAuthStore';
-import { formatCredits, formatDate } from '../utils/formatters';
-import RacerCard from '../components/RacerCard';
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import useAuthStore from '../store/useAuthStore'
 
 function Profile() {
-  const [profile, setProfile] = useState(null);
-  const [racers, setRacers] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [activeTab, setActiveTab] = useState('racers'); // racers, transactions
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
+  const navigate = useNavigate()
+  const { isAuthenticated, user, fetchUser } = useAuthStore()
 
   useEffect(() => {
-    loadProfileData();
-  }, []);
-
-  const loadProfileData = async () => {
-    try {
-      const [profileData, racersData, transactionsData] = await Promise.all([
-        getProfile(),
-        getRacers(),
-        getTransactions(20)
-      ]);
-      setProfile(profileData.user);
-      setRacers(racersData.racers);
-      setTransactions(transactionsData.transactions);
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    } finally {
-      setLoading(false);
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
     }
-  };
+    if (!user) {
+      fetchUser()
+    }
+  }, [isAuthenticated, user, navigate, fetchUser])
 
-  if (loading) {
+  if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="dna-loader text-6xl">🧬</div>
+      <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        {/* Profile Header */}
-        <div className="bg-dark-card rounded-xl p-8 mb-8 border border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{user?.username}</h1>
-              <p className="text-gray-400">{profile?.email}</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Member since {formatDate(profile?.created_at)}
-              </p>
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+          Player Profile
+        </h1>
+
+        <div className="bg-indigo-900/50 rounded-xl border border-indigo-700 p-8 mb-8">
+          <div className="flex items-center space-x-6 mb-8">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-4xl font-bold">
+              {user.username[0].toUpperCase()}
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-400 mb-1">Balance</div>
-              <div className="text-4xl font-bold text-primary">
-                {formatCredits(profile?.wallet_balance || 0)}
+            <div>
+              <h2 className="text-3xl font-bold">{user.username}</h2>
+              <p className="text-gray-400">{user.email}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="bg-indigo-950/50 p-6 rounded-xl text-center">
+              <div className="text-3xl font-bold text-yellow-400">{user.trophies || 0}</div>
+              <div className="text-sm text-gray-400 mt-2">Trophies</div>
+            </div>
+            <div className="bg-indigo-950/50 p-6 rounded-xl text-center">
+              <div className="text-3xl font-bold text-purple-400">{user.level || 1}</div>
+              <div className="text-sm text-gray-400 mt-2">Level</div>
+            </div>
+            <div className="bg-indigo-950/50 p-6 rounded-xl text-center">
+              <div className="text-3xl font-bold text-yellow-400">{user.gold || 0}</div>
+              <div className="text-sm text-gray-400 mt-2">Gold</div>
+            </div>
+            <div className="bg-indigo-950/50 p-6 rounded-xl text-center">
+              <div className="text-3xl font-bold text-pink-400">{user.gems || 0}</div>
+              <div className="text-sm text-gray-400 mt-2">Gems</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-indigo-900/50 rounded-xl border border-indigo-700 p-6">
+            <h3 className="text-xl font-semibold mb-4">Battle Stats</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Wins:</span>
+                <span className="font-semibold">{user.wins || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Losses:</span>
+                <span className="font-semibold">{user.losses || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Win Rate:</span>
+                <span className="font-semibold">
+                  {user.wins && user.losses 
+                    ? `${((user.wins / (user.wins + user.losses)) * 100).toFixed(1)}%`
+                    : '0%'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-900/50 rounded-xl border border-indigo-700 p-6">
+            <h3 className="text-xl font-semibold mb-4">Account Info</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Member Since:</span>
+                <span className="font-semibold">
+                  {new Date(user.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Arena:</span>
+                <span className="font-semibold">Arena 1</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Best Trophies:</span>
+                <span className="font-semibold">{user.best_trophies || user.trophies || 0}</span>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-dark-card p-6 rounded-xl border border-gray-700"
-          >
-            <div className="text-3xl mb-2">🧬</div>
-            <div className="text-2xl font-bold text-primary">{racers.length}</div>
-            <div className="text-sm text-gray-400">Total Racers</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-dark-card p-6 rounded-xl border border-gray-700"
-          >
-            <div className="text-3xl mb-2">⭐</div>
-            <div className="text-2xl font-bold text-secondary">
-              {racers.filter(r => r.evolved).length}
-            </div>
-            <div className="text-sm text-gray-400">Evolved Avatars</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-dark-card p-6 rounded-xl border border-gray-700"
-          >
-            <div className="text-3xl mb-2">💰</div>
-            <div className="text-2xl font-bold text-green-400">
-              {formatCredits(profile?.stats?.totalEarned || 0)}
-            </div>
-            <div className="text-sm text-gray-400">Total Earned</div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-dark-card p-6 rounded-xl border border-gray-700"
-          >
-            <div className="text-3xl mb-2">💸</div>
-            <div className="text-2xl font-bold text-red-400">
-              {formatCredits(profile?.stats?.totalSpent || 0)}
-            </div>
-            <div className="text-sm text-gray-400">Total Spent</div>
-          </motion.div>
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="flex gap-4 border-b border-gray-700">
-            <button
-              onClick={() => setActiveTab('racers')}
-              className={`px-6 py-3 font-semibold transition ${
-                activeTab === 'racers'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              My Racers ({racers.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('transactions')}
-              className={`px-6 py-3 font-semibold transition ${
-                activeTab === 'transactions'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              Transaction History
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'racers' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {racers.map((racer, index) => (
-              <motion.div
-                key={racer.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <RacerCard racer={racer} showDetails />
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'transactions' && (
-          <div className="bg-dark-card rounded-xl border border-gray-700 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-dark border-b border-gray-700">
-                <tr>
-                  <th className="px-6 py-4 text-left">Type</th>
-                  <th className="px-6 py-4 text-right">Amount</th>
-                  <th className="px-6 py-4 text-right">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx, index) => (
-                  <motion.tr
-                    key={tx.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="border-b border-gray-800 hover:bg-dark-lighter transition"
-                  >
-                    <td className="px-6 py-4">
-                      <span className="capitalize">{tx.transaction_type.replace(/_/g, ' ')}</span>
-                    </td>
-                    <td className={`px-6 py-4 text-right font-bold ${
-                      tx.amount > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {tx.amount > 0 ? '+' : ''}{formatCredits(tx.amount)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm text-gray-400">
-                      {formatDate(tx.timestamp)}
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </motion.div>
+      </div>
     </div>
-  );
+  )
 }
 
-export default Profile;
+export default Profile
 

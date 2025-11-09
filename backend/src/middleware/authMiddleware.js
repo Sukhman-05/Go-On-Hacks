@@ -1,28 +1,24 @@
-const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../config/auth');
+import jwt from 'jsonwebtoken'
 
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ message: 'No token provided' })
     }
 
-    const token = authHeader.substring(7);
+    const token = authHeader.substring(7)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
     
-    const decoded = jwt.verify(token, jwtSecret);
-    req.userId = decoded.userId;
-    req.username = decoded.username;
+    req.userId = decoded.userId
+    req.user = decoded
     
-    next();
+    next()
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
-    }
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ message: 'Invalid or expired token' })
   }
-};
+}
 
-module.exports = authMiddleware;
+export default authMiddleware
 

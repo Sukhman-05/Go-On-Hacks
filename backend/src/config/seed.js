@@ -1,136 +1,42 @@
-const bcrypt = require('bcrypt');
-const pool = require('./database');
-const { distributeStats, determineRarity } = require('../utils/statWeighting');
-const { randomChoice } = require('../utils/rng');
+import pool from './database.js'
 
-const namePool = [
-  'GPT-Racer', 'Claude-Sprint', 'Gemini-Rush', 'LLaMA-Dash', 'Mistral-Bolt',
-  'Bard-Blitz', 'Copilot-Charge', 'Whisper-Wave', 'DALL-E-Dash', 'Stable-Sprint'
-];
+const cardsSeed = `
+-- Insert base cards
+INSERT INTO cards (name, type, rarity, elixir_cost, target_type, character_model, base_hp, base_damage, base_speed, base_range, attack_speed, description) VALUES
+  ('Knight', 'troop', 'common', 3, 'ground', 'Knight', 1400, 150, 1.0, 1.2, 1.1, 'A tough melee fighter with balanced stats'),
+  ('Barbarian', 'troop', 'common', 5, 'ground', 'Barbarian', 1200, 200, 1.2, 1.2, 1.3, 'Fierce warrior with high damage output'),
+  ('Mage', 'troop', 'rare', 4, 'both', 'Mage', 800, 250, 0.8, 5.0, 1.5, 'Ranged spellcaster with area damage'),
+  ('Ranger', 'troop', 'rare', 3, 'both', 'Ranger', 700, 180, 1.0, 5.5, 1.0, 'Swift archer with long range'),
+  ('Rogue', 'troop', 'epic', 4, 'ground', 'Rogue', 900, 220, 1.4, 1.5, 0.9, 'Fast assassin with high burst damage'),
+  ('Giant', 'troop', 'rare', 5, 'ground', 'Barbarian', 3000, 180, 0.6, 1.2, 1.5, 'Massive tank that targets buildings'),
+  ('Archers', 'troop', 'common', 3, 'both', 'Ranger', 500, 120, 0.9, 5.0, 1.2, 'Pair of ranged attackers'),
+  ('Mini Knight', 'troop', 'common', 2, 'ground', 'Knight', 800, 100, 1.2, 1.2, 1.0, 'Smaller but faster knight'),
+  ('Elite Barbarian', 'troop', 'epic', 6, 'ground', 'Barbarian', 1600, 280, 1.4, 1.2, 1.2, 'Fast and powerful barbarians'),
+  ('Wizard', 'troop', 'legendary', 5, 'both', 'Mage', 1000, 350, 0.7, 5.5, 1.7, 'Powerful mage with splash damage'),
+  ('Fireball', 'spell', 'rare', 4, 'both', NULL, NULL, 400, NULL, NULL, NULL, 'Area damage spell'),
+  ('Freeze', 'spell', 'epic', 4, 'both', NULL, NULL, NULL, NULL, NULL, NULL, 'Freezes enemies in area'),
+  ('Heal', 'spell', 'common', 3, 'both', NULL, NULL, NULL, NULL, NULL, NULL, 'Heals friendly troops in area'),
+  ('Arrow Tower', 'building', 'common', 3, 'both', NULL, 1000, 100, NULL, 6.0, 1.0, 'Defensive tower that shoots arrows'),
+  ('Cannon', 'building', 'common', 3, 'ground', NULL, 800, 200, NULL, 5.5, 0.8, 'Defensive building targeting ground'),
+  ('Shadow Rogue', 'troop', 'rare', 3, 'ground', 'Rogue', 700, 180, 1.5, 1.5, 0.8, 'Stealthy assassin with quick attacks'),
+  ('Battle Mage', 'troop', 'rare', 4, 'both', 'Mage', 850, 280, 0.8, 5.0, 1.4, 'Versatile mage with powerful spells'),
+  ('Elite Knight', 'troop', 'rare', 4, 'ground', 'Knight', 1800, 200, 1.0, 1.2, 1.0, 'Heavily armored knight'),
+  ('Dual Archers', 'troop', 'common', 3, 'both', 'Ranger', 600, 140, 1.0, 6.0, 1.1, 'Two archers with extended range'),
+  ('Berserker', 'troop', 'epic', 5, 'ground', 'Barbarian', 1400, 250, 1.3, 1.2, 1.4, 'Raging warrior with massive damage')
+ON CONFLICT DO NOTHING;
+`
 
-async function seedDatabase() {
-  const client = await pool.connect();
-
+async function runSeed() {
   try {
-    console.log('🌱 Starting database seeding...');
-
-    // Create test users
-    const users = [
-      { username: 'testuser1', email: 'test1@example.com', password: 'password123' },
-      { username: 'testuser2', email: 'test2@example.com', password: 'password123' },
-      { username: 'speedster', email: 'speed@example.com', password: 'password123' },
-      { username: 'racerking', email: 'king@example.com', password: 'password123' },
-      { username: 'aimaster', email: 'master@example.com', password: 'password123' }
-    ];
-
-    const createdUsers = [];
-    for (const user of users) {
-      const passwordHash = await bcrypt.hash(user.password, 10);
-      const result = await client.query(
-        `INSERT INTO users (username, email, password_hash, wallet_balance)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (email) DO NOTHING
-         RETURNING id, username`,
-        [user.username, user.email, passwordHash, 1000]
-      );
-      if (result.rows.length > 0) {
-        createdUsers.push(result.rows[0]);
-        console.log(`✅ Created user: ${user.username}`);
-      }
-    }
-
-    // Create racers for each user
-    let totalRacers = 0;
-    for (const user of createdUsers) {
-      const racerCount = Math.floor(Math.random() * 3) + 2; // 2-4 racers per user
-
-      for (let i = 0; i < racerCount; i++) {
-        const stats = distributeStats();
-        const rarity = determineRarity(stats);
-        const baseName = randomChoice(namePool);
-        const name = `${baseName}-${Math.floor(Math.random() * 9999).toString().padStart(4, '0')}`;
-        const xp = Math.floor(Math.random() * 600); // Random XP between 0-600
-
-        await client.query(
-          `INSERT INTO racers (user_id, name, stats, rarity, xp, generation)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [user.id, name, JSON.stringify(stats), rarity, xp, 1]
-        );
-        totalRacers++;
-      }
-      console.log(`✅ Created ${racerCount} racers for ${user.username}`);
-    }
-
-    // Create some sample races
-    console.log('🏁 Creating sample races...');
-    const racers = await client.query('SELECT * FROM racers LIMIT 10');
-    
-    for (let i = 0; i < 5; i++) {
-      const racer1 = racers.rows[Math.floor(Math.random() * racers.rows.length)];
-      const racer2 = racers.rows[Math.floor(Math.random() * racers.rows.length)];
-      
-      if (racer1.id === racer2.id) continue;
-
-      const winner = Math.random() > 0.5 ? racer1.id : racer2.id;
-      
-      await client.query(
-        `INSERT INTO races (race_type, participants, results, winner_id)
-         VALUES ($1, $2, $3, $4)`,
-        [
-          'pve',
-          JSON.stringify([
-            { racerId: racer1.id, racerName: racer1.name, userId: racer1.user_id },
-            { racerId: racer2.id, racerName: racer2.name, isAI: true }
-          ]),
-          JSON.stringify({ winner, timeElapsed: Math.floor(Math.random() * 60) + 30 }),
-          winner
-        ]
-      );
-    }
-    console.log('✅ Created 5 sample races');
-
-    // Create some transactions
-    console.log('💰 Creating sample transactions...');
-    for (const user of createdUsers) {
-      // Summon transaction
-      await client.query(
-        `INSERT INTO transactions (user_id, transaction_type, amount)
-         VALUES ($1, $2, $3)`,
-        [user.id, 'summon', -100]
-      );
-
-      // Race win transaction
-      await client.query(
-        `INSERT INTO transactions (user_id, transaction_type, amount)
-         VALUES ($1, $2, $3)`,
-        [user.id, 'race_win', 75]
-      );
-    }
-    console.log('✅ Created sample transactions');
-
-    console.log('\n🎉 Database seeding completed successfully!');
-    console.log(`📊 Summary:`);
-    console.log(`   - Users created: ${createdUsers.length}`);
-    console.log(`   - Racers created: ${totalRacers}`);
-    console.log(`   - Races created: 5`);
-    console.log(`\n💡 Test credentials:`);
-    console.log(`   Email: test1@example.com`);
-    console.log(`   Password: password123`);
-
+    console.log('Seeding database...')
+    await pool.query(cardsSeed)
+    console.log('✅ Database seeded successfully')
+    process.exit(0)
   } catch (error) {
-    console.error('❌ Seeding failed:', error);
-    throw error;
-  } finally {
-    client.release();
+    console.error('❌ Seeding failed:', error)
+    process.exit(1)
   }
 }
 
-// Run seed if called directly
-if (require.main === module) {
-  seedDatabase()
-    .then(() => process.exit(0))
-    .catch(() => process.exit(1));
-}
-
-module.exports = seedDatabase;
+runSeed()
 

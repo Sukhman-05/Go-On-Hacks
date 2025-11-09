@@ -1,177 +1,92 @@
-import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { getRacers, getBalance } from '../services/api';
-import { useAuthStore } from '../store/useAuthStore';
-import { useGameStore } from '../store/useGameStore';
-import { formatCredits } from '../utils/formatters';
-import RacerCard from '../components/RacerCard';
+import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import useAuthStore from '../store/useAuthStore'
 
 function Home() {
-  const [loading, setLoading] = useState(true);
-  const { user, updateBalance } = useAuthStore();
-  const { racers, setRacers } = useGameStore();
-  const hasLoadedRef = useRef(false);
+  const navigate = useNavigate()
+  const { isAuthenticated, user, fetchUser } = useAuthStore()
 
   useEffect(() => {
-    // Skip if already loaded (handles React.StrictMode double execution)
-    if (hasLoadedRef.current) {
-      // If we already tried to load, ensure loading state is correct
-      if (loading && (racers.length > 0 || user?.wallet_balance !== undefined)) {
-        setLoading(false);
-      }
-      return;
+    if (isAuthenticated && !user) {
+      fetchUser()
     }
-    
-    // Check if we already have data in store
-    if (racers.length > 0 && user?.wallet_balance !== undefined) {
-      setLoading(false);
-      hasLoadedRef.current = true;
-      return;
+  }, [isAuthenticated, user, fetchUser])
+
+  const handlePlayNow = () => {
+    if (isAuthenticated) {
+      navigate('/battle')
+    } else {
+      navigate('/login')
     }
-    
-    // Mark as loading and start fetch
-    hasLoadedRef.current = true;
-    setLoading(true);
-
-    const loadData = async () => {
-      try {
-        const [racersData, balanceData] = await Promise.all([
-          getRacers(),
-          getBalance()
-        ]);
-        
-        setRacers(racersData.racers || []);
-        updateBalance(balanceData.balance || 0);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-        setLoading(false);
-        // Reset flag on error to allow retry on next mount
-        hasLoadedRef.current = false;
-      }
-    };
-
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - only run once on mount
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="dna-loader text-6xl">🧬</div>
-      </div>
-    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Welcome Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-12 text-center"
-      >
-        <h1 className="text-5xl font-bold mb-4">
-          Welcome, <span className="text-primary">{user?.username}</span>!
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4">
+      <div className="text-center space-y-8 max-w-4xl">
+        <h1 className="text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
+          Battle Arena
         </h1>
-        <p className="text-xl text-gray-400 mb-6">
-          Your balance: <span className="text-primary font-bold">{formatCredits(user?.wallet_balance || 0)}</span>
+        
+        <p className="text-xl md:text-2xl text-gray-300">
+          Deploy your troops, destroy towers, and climb the ranks in this epic 3D tower defense game
         </p>
-        
-        <div className="flex justify-center gap-4">
-          <Link to="/summon" className="btn-primary">
-            🎰 Summon New Racer
-          </Link>
-          <Link to="/race" className="btn-secondary">
-            🏁 Start Racing
-          </Link>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+          <button
+            onClick={handlePlayNow}
+            className="px-8 py-4 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg transform hover:scale-105 transition-all"
+          >
+            ⚔️ Play Now
+          </button>
+          
+          {!isAuthenticated && (
+            <button
+              onClick={() => navigate('/register')}
+              className="px-8 py-4 text-lg font-bold bg-indigo-900/50 hover:bg-indigo-800/50 border-2 border-purple-500 rounded-xl transform hover:scale-105 transition-all"
+            >
+              Create Account
+            </button>
+          )}
         </div>
-      </motion.div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-dark-card p-6 rounded-xl border border-primary/20"
-        >
-          <div className="text-4xl mb-2">🧬</div>
-          <div className="text-2xl font-bold text-primary">{racers.length}</div>
-          <div className="text-gray-400">Total Racers</div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-dark-card p-6 rounded-xl border border-secondary/20"
-        >
-          <div className="text-4xl mb-2">⭐</div>
-          <div className="text-2xl font-bold text-secondary">
-            {racers.filter(r => r.evolved).length}
-          </div>
-          <div className="text-gray-400">Evolved Avatars</div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-dark-card p-6 rounded-xl border border-legendary/20"
-        >
-          <div className="text-4xl mb-2">👑</div>
-          <div className="text-2xl font-bold text-legendary">
-            {racers.filter(r => r.rarity === 'legendary').length}
-          </div>
-          <div className="text-gray-400">Legendary Racers</div>
-        </motion.div>
-      </div>
-
-      {/* Racer Collection */}
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-6">Your Racers</h2>
-        
-        {racers.length === 0 ? (
-          <div className="text-center py-12 bg-dark-card rounded-xl border border-gray-700">
-            <div className="text-6xl mb-4">🎰</div>
-            <p className="text-xl text-gray-400 mb-4">No racers yet!</p>
-            <Link to="/summon" className="btn-primary inline-block">
-              Summon Your First Racer
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {racers.map((racer, index) => (
-              <motion.div
-                key={racer.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <RacerCard racer={racer} />
-              </motion.div>
-            ))}
+        {isAuthenticated && user && (
+          <div className="pt-12 grid grid-cols-3 gap-6 max-w-2xl mx-auto">
+            <div className="bg-indigo-900/50 p-6 rounded-xl border border-indigo-700">
+              <div className="text-3xl font-bold text-yellow-400">{user.trophies || 0}</div>
+              <div className="text-sm text-gray-400 mt-1">Trophies</div>
+            </div>
+            <div className="bg-indigo-900/50 p-6 rounded-xl border border-indigo-700">
+              <div className="text-3xl font-bold text-yellow-400">{user.gold || 0}</div>
+              <div className="text-sm text-gray-400 mt-1">Gold</div>
+            </div>
+            <div className="bg-indigo-900/50 p-6 rounded-xl border border-indigo-700">
+              <div className="text-3xl font-bold text-purple-400">{user.level || 1}</div>
+              <div className="text-sm text-gray-400 mt-1">Level</div>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Quick Actions */}
-      <div className="text-center">
-        <p className="text-gray-400 mb-4">Ready for more action?</p>
-        <div className="flex justify-center gap-4">
-          <Link to="/leaderboard" className="text-primary hover:underline">
-            View Leaderboard
-          </Link>
-          <Link to="/profile" className="text-primary hover:underline">
-            View Full Profile
-          </Link>
+        <div className="pt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          <div className="bg-indigo-900/30 p-6 rounded-xl border border-indigo-700">
+            <div className="text-4xl mb-3">🎮</div>
+            <h3 className="text-xl font-bold mb-2">Real-Time Battles</h3>
+            <p className="text-gray-400">Fight against players worldwide in intense 3-minute battles</p>
+          </div>
+          <div className="bg-indigo-900/30 p-6 rounded-xl border border-indigo-700">
+            <div className="text-4xl mb-3">🃏</div>
+            <h3 className="text-xl font-bold mb-2">Collect & Upgrade</h3>
+            <p className="text-gray-400">Build your deck with powerful cards and upgrade them</p>
+          </div>
+          <div className="bg-indigo-900/30 p-6 rounded-xl border border-indigo-700">
+            <div className="text-4xl mb-3">🏆</div>
+            <h3 className="text-xl font-bold mb-2">Climb the Ranks</h3>
+            <p className="text-gray-400">Earn trophies and compete on the global leaderboard</p>
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Home;
+export default Home
 

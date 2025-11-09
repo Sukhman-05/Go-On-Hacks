@@ -1,115 +1,103 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const UserModel = require('../models/UserModel');
-const { jwtSecret, jwtExpiration, bcryptSaltRounds } = require('../config/auth');
+import express from 'express'
+import jwt from 'jsonwebtoken'
+import UserModel from '../models/UserModel.js'
+import CardModel from '../models/CardModel.js'
+import authMiddleware from '../middleware/authMiddleware.js'
 
-const router = express.Router();
+const router = express.Router()
 
-/**
- * POST /auth/register
- * Register a new user
- */
+// Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password } = req.body
 
-    // Validation
+    // Validate input
     if (!username || !email || !password) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ message: 'All fields are required' })
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return res.status(400).json({ message: 'Password must be at least 6 characters' })
     }
 
-    // Check if user already exists
-    const existingUser = await UserModel.findByEmail(email);
+    // Check if user exists
+    const existingUser = await UserModel.findByEmail(email)
     if (existingUser) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return res.status(400).json({ message: 'Email already registered' })
     }
-
-    const existingUsername = await UserModel.findByUsername(username);
-    if (existingUsername) {
-      return res.status(409).json({ error: 'Username already taken' });
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, bcryptSaltRounds);
 
     // Create user
-    const user = await UserModel.create(username, email, passwordHash);
+    const user = await UserModel.create(username, email, password)
 
-    // Generate JWT
+    // Give starter cards to new user - all common cards plus some rares
+    const allCards = await CardModel.findAll()
+    const commonCards = allCards.filter(c => c.rarity === 'common')
+    const rareCards = allCards.filter(c => c.rarity === 'rare')
+    
+    // Give all common cards (quantity 10 each)
+    for (const card of commonCards) {
+      await CardModel.addCardToUser(user.id, card.id, 10)
+    }
+    
+    // Give some rare cards (quantity 5 each)
+    for (const card of rareCards.slice(0, 5)) {
+      await CardModel.addCardToUser(user.id, card.id, 5)
+    }
+
+    // Generate token
     const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      jwtSecret,
-      { expiresIn: jwtExpiration }
-    );
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRATION || '7d' }
+    )
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        wallet_balance: user.wallet_balance
-      }
-    });
+    res.status(201).json({ token, user })
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to register user' });
+    console.error('Register error:', error)
+    res.status(500).json({ message: 'Registration failed' })
   }
-});
+})
 
-/**
- * POST /auth/login
- * Login existing user
- */
+// Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body
 
-    // Validation
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ message: 'Email and password are required' })
     }
 
-    // Find user
-    const user = await UserModel.findByEmail(email);
+    const user = await UserModel.verifyPassword(email, password)
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' })
     }
 
-    // Verify password
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT
     const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      jwtSecret,
-      { expiresIn: jwtExpiration }
-    );
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRATION || '7d' }
+    )
 
-    res.json({
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        wallet_balance: user.wallet_balance
-      }
-    });
+    res.json({ token, user })
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to login' });
+    console.error('Login error:', error)
+    res.status(500).json({ message: 'Login failed' })
   }
-});
+})
 
-module.exports = router;
+// Get current user
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.userId)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+    res.json(user)
+  } catch (error) {
+    console.error('Get user error:', error)
+    res.status(500).json({ message: 'Failed to fetch user' })
+  }
+})
+
+export default router
 

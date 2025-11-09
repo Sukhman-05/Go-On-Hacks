@@ -1,119 +1,109 @@
-const pool = require('./database');
+import pool from './database.js'
 
-const createTables = async () => {
-  const client = await pool.connect();
-  
+const migrations = `
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  trophies INTEGER DEFAULT 0,
+  gold INTEGER DEFAULT 1000,
+  gems INTEGER DEFAULT 50,
+  level INTEGER DEFAULT 1,
+  wins INTEGER DEFAULT 0,
+  losses INTEGER DEFAULT 0,
+  best_trophies INTEGER DEFAULT 0,
+  avatar VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Cards table
+CREATE TABLE IF NOT EXISTS cards (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  rarity VARCHAR(50) NOT NULL,
+  elixir_cost INTEGER NOT NULL,
+  target_type VARCHAR(50) NOT NULL,
+  deploy_time FLOAT DEFAULT 1.0,
+  character_model VARCHAR(100),
+  description TEXT,
+  base_hp INTEGER,
+  base_damage INTEGER,
+  base_speed FLOAT,
+  base_range FLOAT,
+  attack_speed FLOAT,
+  area_damage BOOLEAN DEFAULT FALSE,
+  area_radius FLOAT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User cards (card collection)
+CREATE TABLE IF NOT EXISTS user_cards (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  card_id INTEGER REFERENCES cards(id) ON DELETE CASCADE,
+  level INTEGER DEFAULT 1,
+  quantity INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, card_id)
+);
+
+-- Decks table
+CREATE TABLE IF NOT EXISTS decks (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  name VARCHAR(100) NOT NULL,
+  card_slot_1 INTEGER REFERENCES cards(id),
+  card_slot_2 INTEGER REFERENCES cards(id),
+  card_slot_3 INTEGER REFERENCES cards(id),
+  card_slot_4 INTEGER REFERENCES cards(id),
+  card_slot_5 INTEGER REFERENCES cards(id),
+  card_slot_6 INTEGER REFERENCES cards(id),
+  card_slot_7 INTEGER REFERENCES cards(id),
+  card_slot_8 INTEGER REFERENCES cards(id),
+  is_active BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Matches table
+CREATE TABLE IF NOT EXISTS matches (
+  id SERIAL PRIMARY KEY,
+  player1_id INTEGER REFERENCES users(id),
+  player2_id INTEGER REFERENCES users(id),
+  winner_id INTEGER REFERENCES users(id),
+  player1_trophies_change INTEGER,
+  player2_trophies_change INTEGER,
+  player1_gold_earned INTEGER,
+  player2_gold_earned INTEGER,
+  duration INTEGER,
+  replay_data JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_user_cards_user_id ON user_cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_decks_user_id ON decks(user_id);
+CREATE INDEX IF NOT EXISTS idx_matches_player1 ON matches(player1_id);
+CREATE INDEX IF NOT EXISTS idx_matches_player2 ON matches(player2_id);
+`
+
+async function runMigrations() {
   try {
-    console.log('🔄 Starting database migration...');
-
-    // Users table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255) NOT NULL,
-        wallet_balance INTEGER DEFAULT 1000,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Users table created');
-
-    // Racers table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS racers (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        name VARCHAR(100) NOT NULL,
-        stats JSONB NOT NULL,
-        rarity VARCHAR(20) NOT NULL,
-        xp INTEGER DEFAULT 0,
-        generation INTEGER DEFAULT 1,
-        parent_id INTEGER REFERENCES racers(id) ON DELETE SET NULL,
-        evolved BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Racers table created');
-
-    // Races table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS races (
-        id SERIAL PRIMARY KEY,
-        race_type VARCHAR(10) NOT NULL,
-        participants JSONB NOT NULL,
-        results JSONB,
-        winner_id INTEGER,
-        race_seed VARCHAR(50),
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Races table created');
-
-    // Bets table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS bets (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        race_id INTEGER REFERENCES races(id) ON DELETE CASCADE,
-        racer_id INTEGER REFERENCES racers(id) ON DELETE CASCADE,
-        amount INTEGER NOT NULL,
-        outcome VARCHAR(10),
-        resolved BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Bets table created');
-
-    // Evolutions table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS evolutions (
-        id SERIAL PRIMARY KEY,
-        racer_id INTEGER REFERENCES racers(id) ON DELETE CASCADE,
-        old_form VARCHAR(100),
-        new_form VARCHAR(100) NOT NULL,
-        evolved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Evolutions table created');
-
-    // Transactions table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        transaction_type VARCHAR(20) NOT NULL,
-        amount INTEGER NOT NULL,
-        reference_id INTEGER,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ Transactions table created');
-
-    // Create indexes
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_racers_user_id ON racers(user_id);
-      CREATE INDEX IF NOT EXISTS idx_bets_user_id ON bets(user_id);
-      CREATE INDEX IF NOT EXISTS idx_bets_race_id ON bets(race_id);
-      CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
-    `);
-    console.log('✅ Indexes created');
-
-    console.log('🎉 Migration completed successfully!');
+    console.log('Running database migrations...')
+    await pool.query(migrations)
+    console.log('✅ Migrations completed successfully')
+    process.exit(0)
   } catch (error) {
-    console.error('❌ Migration failed:', error);
-    throw error;
-  } finally {
-    client.release();
+    console.error('❌ Migration failed:', error)
+    process.exit(1)
   }
-};
-
-// Run migration if called directly
-if (require.main === module) {
-  createTables()
-    .then(() => process.exit(0))
-    .catch(() => process.exit(1));
 }
 
-module.exports = createTables;
+runMigrations()
 

@@ -1,23 +1,57 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import api from '../services/api'
 
-export const useAuthStore = create(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      
-      setAuth: (user, token) => set({ user, token }),
-      
-      updateBalance: (balance) => set((state) => ({
-        user: state.user ? { ...state.user, wallet_balance: balance } : null
-      })),
-      
-      logout: () => set({ user: null, token: null })
-    }),
-    {
-      name: 'auth-storage'
+const useAuthStore = create((set) => ({
+  user: null,
+  token: localStorage.getItem('token') || null,
+  isAuthenticated: !!localStorage.getItem('token'),
+  loading: false,
+  error: null,
+
+  login: async (email, password) => {
+    set({ loading: true, error: null })
+    try {
+      const response = await api.post('/auth/login', { email, password })
+      const { token, user } = response.data
+      localStorage.setItem('token', token)
+      set({ user, token, isAuthenticated: true, loading: false })
+      return true
+    } catch (error) {
+      set({ error: error.response?.data?.message || 'Login failed', loading: false })
+      return false
     }
-  )
-);
+  },
+
+  register: async (username, email, password) => {
+    set({ loading: true, error: null })
+    try {
+      const response = await api.post('/auth/register', { username, email, password })
+      const { token, user } = response.data
+      localStorage.setItem('token', token)
+      set({ user, token, isAuthenticated: true, loading: false })
+      return true
+    } catch (error) {
+      set({ error: error.response?.data?.message || 'Registration failed', loading: false })
+      return false
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('token')
+    set({ user: null, token: null, isAuthenticated: false })
+  },
+
+  fetchUser: async () => {
+    try {
+      const response = await api.get('/auth/me')
+      set({ user: response.data })
+    } catch (error) {
+      console.error('Failed to fetch user', error)
+      set({ user: null, token: null, isAuthenticated: false })
+      localStorage.removeItem('token')
+    }
+  },
+}))
+
+export default useAuthStore
 

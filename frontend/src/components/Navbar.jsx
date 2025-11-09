@@ -1,88 +1,66 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
-import { formatCredits } from '../utils/formatters';
+import { Link } from 'react-router-dom'
+import useAuthStore from '../store/useAuthStore'
 
 function Navbar() {
-  const location = useLocation();
-  const { user, logout } = useAuthStore();
-
-  const isActive = (path) => location.pathname === path;
+  const { isAuthenticated, user, logout } = useAuthStore()
 
   return (
-    <nav className="bg-dark-card border-b border-primary/20 sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            🏁 Sperm Racing
+    <nav className="bg-indigo-900/50 backdrop-blur-md border-b border-indigo-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16 items-center">
+          <Link to="/" className="flex items-center space-x-3">
+            <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+              ⚔️ Clash Royale 3D
+            </div>
           </Link>
 
-          {/* Navigation Links */}
           <div className="flex items-center space-x-6">
-            <Link
-              to="/"
-              className={`hover:text-primary transition ${
-                isActive('/') ? 'text-primary' : 'text-gray-300'
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/summon"
-              className={`hover:text-primary transition ${
-                isActive('/summon') ? 'text-primary' : 'text-gray-300'
-              }`}
-            >
-              Summon
-            </Link>
-            <Link
-              to="/race"
-              className={`hover:text-primary transition ${
-                isActive('/race') ? 'text-primary' : 'text-gray-300'
-              }`}
-            >
-              Race
-            </Link>
-            <Link
-              to="/leaderboard"
-              className={`hover:text-primary transition ${
-                isActive('/leaderboard') ? 'text-primary' : 'text-gray-300'
-              }`}
-            >
-              Leaderboard
-            </Link>
-            <Link
-              to="/profile"
-              className={`hover:text-primary transition ${
-                isActive('/profile') ? 'text-primary' : 'text-gray-300'
-              }`}
-            >
-              Profile
-            </Link>
-          </div>
-
-          {/* User Info */}
-          <div className="flex items-center space-x-4">
-            <div className="bg-dark px-4 py-2 rounded-lg border border-primary/30">
-              <span className="text-primary font-bold">
-                {formatCredits(user?.wallet_balance || 0)}
-              </span>
-            </div>
-            <div className="text-sm text-gray-400">
-              {user?.username}
-            </div>
-            <button
-              onClick={logout}
-              className="text-sm text-gray-400 hover:text-red-400 transition"
-            >
-              Logout
-            </button>
+            {isAuthenticated ? (
+              <>
+                <Link to="/battle" className="hover:text-purple-300 transition">
+                  Battle
+                </Link>
+                <Link to="/deck" className="hover:text-purple-300 transition">
+                  Deck
+                </Link>
+                <Link to="/cards" className="hover:text-purple-300 transition">
+                  Cards
+                </Link>
+                <Link to="/profile" className="hover:text-purple-300 transition">
+                  Profile
+                </Link>
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-purple-300">{user?.username}</span>
+                  <button
+                    onClick={logout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-4 py-2 hover:text-purple-300 transition"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
     </nav>
-  );
+  )
 }
 
-export default Navbar;
+export default Navbar
 

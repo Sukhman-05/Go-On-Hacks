@@ -1,315 +1,369 @@
-# 🏁 Sperm Racing Simulator: Battle for the Gene Pool
+# Clash Royale 3D Clone
 
-A satirical, AI-themed gacha racing simulator where you summon sperm racers, compete in races, bet DNA Credits, and evolve winners into powerful AI avatars that can produce new generations.
+A full-featured 3D tower defense game inspired by Clash Royale, built with React, Three.js, Node.js, and PostgreSQL. Features real-time multiplayer battles, card collection, deck building, and progression systems.
+
+![Game Banner](https://via.placeholder.com/800x200/8B5CF6/FFFFFF?text=Clash+Royale+3D+Clone)
 
 ## 🎮 Features
 
-- **Gacha System**: Summon random racers with unique stat distributions and rarities
-- **PvE Racing**: Race against AI opponents with dynamic physics simulation
-- **PvP Racing**: Real-time multiplayer races via WebSocket
-- **Betting System**: Wager DNA Credits on race outcomes
-- **Evolution Mechanic**: Evolve racers into AI Avatars at 500 XP
-- **Breeding**: Evolved avatars can create offspring with inherited traits
-- **Leaderboard**: Compete for the top spot
-- **2D Race Visualization**: Watch races unfold with Phaser.js
-- **Economy System**: Earn and spend DNA Credits
+### Core Gameplay
+- ⚔️ **Real-time Multiplayer Battles**: Fight against other players in intense 3-minute matches
+- 🎯 **3D Battle Arena**: Fully rendered 3D environment with Three.js
+- 🃏 **Card System**: 15+ unique cards with different rarities and abilities
+- 💎 **Elixir Management**: Strategic resource management during battles
+- 🏰 **Tower Defense**: Protect your towers while destroying enemy towers
+
+### Game Systems
+- 👤 **User Authentication**: Secure JWT-based authentication
+- 🎴 **Card Collection**: Collect, unlock, and upgrade cards
+- 📋 **Deck Building**: Create custom 8-card decks
+- 🏆 **Trophy System**: Competitive ranking with ELO-based matchmaking
+- 💰 **Economy**: Gold and gems for upgrades and purchases
+- 📊 **Progression**: Level up cards and your player profile
+- 📈 **Leaderboards**: Compete globally
+
+### Technical Features
+- 🌐 **WebSocket Communication**: Real-time game state synchronization
+- 🎨 **Modern UI**: Beautiful interface with Tailwind CSS
+- 🔄 **State Management**: Zustand for efficient state handling
+- 🗄️ **PostgreSQL Database**: Robust data persistence
+- 🎭 **3D Character Models**: KayKit Adventurer models (Knight, Barbarian, Mage, Ranger, Rogue)
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Node.js + Express**: REST API server
-- **PostgreSQL**: Database for users, racers, races, and transactions
-- **Socket.IO**: Real-time WebSocket for PvP racing
-- **JWT**: Authentication
-- **bcrypt**: Password hashing
-- **seedrandom**: Deterministic race simulation
-
 ### Frontend
-- **React**: UI framework
-- **Vite**: Build tool
-- **React Router**: Navigation
-- **Zustand**: State management
-- **TailwindCSS**: Styling
-- **Framer Motion**: Animations
-- **Phaser.js**: 2D race visualization
-- **Axios**: HTTP client
-- **Socket.IO Client**: WebSocket client
+- **React** 18.2 - UI framework
+- **Vite** - Build tool
+- **Three.js** - 3D rendering
+- **React Three Fiber** - React renderer for Three.js
+- **Zustand** - State management
+- **Tailwind CSS** - Styling
+- **Socket.io Client** - Real-time communication
 
-## 📁 Project Structure
+### Backend
+- **Node.js** - Runtime
+- **Express** - Web framework
+- **Socket.io** - WebSocket server
+- **PostgreSQL** - Database
+- **JWT** - Authentication
+- **bcryptjs** - Password hashing
 
-```
-/backend
-  /src
-    /config         - Database, auth, migrations
-    /models         - Data models (User, Racer, Race, etc.)
-    /routes         - API endpoints
-    /services       - Business logic (gacha, racing, economy)
-    /utils          - Utilities (RNG, stat weighting)
-    /middleware     - Auth middleware
-    /websocket      - Socket.IO server for PvP
-  package.json
-  .env.example
+## 📋 Prerequisites
 
-/frontend
-  /src
-    /components     - Reusable UI components
-    /pages          - Page components
-    /game           - Phaser.js race scene
-    /services       - API and WebSocket clients
-    /store          - Zustand state stores
-    /utils          - Formatters and constants
-  package.json
-  .env.example
+Before you begin, ensure you have the following installed:
+- **Node.js** (v18 or higher)
+- **PostgreSQL** (v14 or higher)
+- **npm** or **yarn**
+
+## 🚀 Installation & Setup
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd Go-On-Hacks
 ```
 
-## 🚀 Setup Instructions
-
-### Prerequisites
-- Node.js (v16+)
-- PostgreSQL (v13+)
-- npm or yarn
-
-### 1. Database Setup
+### 2. Database Setup
 
 Create a PostgreSQL database:
-
 ```bash
 createdb sperm_racing
 ```
 
-### 2. Backend Setup
-
-```bash
-cd backend
-npm install
+The `.env` file already contains the database configuration:
 ```
-
-Create `.env` file (copy from `.env.example`):
-
-```env
-PORT=3001
-NODE_ENV=development
-DATABASE_URL=postgresql://username:password@localhost:5432/sperm_racing
+DATABASE_URL=postgresql://sukhman@localhost:5432/sperm_racing
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRATION=7d
+PORT=3001
 SOCKET_PORT=3002
+NODE_ENV=development
 ```
 
-Run database migrations:
+### 3. Install Dependencies
 
+#### Backend
 ```bash
-npm run migrate
+cd backend
+npm install
 ```
 
-Seed the database with test data:
-
-```bash
-npm run seed
-```
-
-Start the backend server:
-
-```bash
-npm run dev
-```
-
-**Separately**, start the WebSocket server:
-
-```bash
-node src/socketIndex.js
-```
-
-### 3. Frontend Setup
-
+#### Frontend
 ```bash
 cd frontend
 npm install
 ```
 
-Create `.env` file (copy from `.env.example`):
+### 4. Database Migration & Seeding
 
-```env
-VITE_API_URL=http://localhost:3001
-VITE_SOCKET_URL=http://localhost:3002
-```
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-The app will open at `http://localhost:3000`
-
-## 🎯 Test Credentials
-
-After seeding the database, you can log in with:
-
-- **Email**: `test1@example.com`
-- **Password**: `password123`
-
-## 📡 API Endpoints
-
-### Authentication
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login user
-
-### User
-- `GET /api/user/profile` - Get user profile
-- `GET /api/user/racers` - Get user's racers
-- `GET /api/user/balance` - Get user balance
-- `GET /api/user/transactions` - Get transaction history
-
-### Summon
-- `POST /api/summon` - Summon a new racer (costs 100 DNA Credits)
-- `GET /api/summon/cost` - Get summon costs
-
-### Racing
-- `POST /api/race/pve` - Start PvE race
-- `GET /api/race/:id` - Get race details
-- `GET /api/race/history/me` - Get user's race history
-
-### Betting
-- `POST /api/bet` - Place a bet on a race
-- `GET /api/bet/history` - Get betting history
-
-### Evolution
-- `POST /api/evolve/:racerId` - Evolve a racer (requires 500 XP)
-- `GET /api/evolve/:racerId/progress` - Get evolution progress
-- `POST /api/evolve/:racerId/breed` - Breed an evolved racer
-
-### Leaderboard
-- `GET /api/leaderboard` - Get top players
-
-## 🎲 Game Mechanics
-
-### Stat Distribution
-Each racer has 100 points distributed across 4 stats:
-- **Speed**: Acceleration and top velocity
-- **Motility**: Agility and turning capability  
-- **Endurance**: Stamina depletion rate
-- **Luck**: Chance for random boosts
-
-Constraints: Min 10, Max 40 per stat
-
-### Rarity System
-Rarity is determined by stat variance (specialization):
-- **Common**: ~70% (Low variance)
-- **Rare**: ~20% (Medium variance)
-- **Epic**: ~8% (High variance)
-- **Legendary**: ~2% (Very high variance)
-
-### Race Simulation
-Races are 1000m over ~60 seconds:
-```
-position += (speed * 0.4 + motility * 0.2) * dt
-stamina -= (100 - endurance) * 0.1 * dt
-if stamina < 50: speed *= 0.8
-if random() < luck/100: position += bonus
-```
-
-### Economy
-- **Starting Balance**: 1000 DNA Credits
-- **Summon Cost**: 100 DNA Credits
-- **PvE Entry**: 50 DNA Credits
-- **PvE Win Reward**: 75 DNA Credits
-- **PvP**: Custom wager (winner takes pot minus 5% house fee)
-
-### Evolution & Breeding
-- **Evolution Threshold**: 500 XP
-- **XP Gains**: Winner +50 XP, Loser +10 XP
-- **Breeding**: Offspring inherit 60% parent stats + 40% random
-- **Generations**: Each offspring increments generation number
-
-## 🌐 WebSocket Events (PvP)
-
-### Client → Server
-- `joinMatchmaking` - Join PvP queue
-- `leaveMatchmaking` - Leave PvP queue
-- `playerReady` - Signal ready for race
-
-### Server → Client
-- `matchFound` - Match found, race starting soon
-- `countdown` - Race countdown (3, 2, 1, GO!)
-- `raceStart` - Race begins
-- `raceUpdate` - Live position updates (1Hz)
-- `raceEnd` - Race finished, winner announced
-- `playerDisconnected` - Opponent disconnected (forfeit)
-
-## 🎨 Visual Design
-
-- **Color Scheme**: Neon blues/purples on dark background (cyberpunk aesthetic)
-- **Rarity Colors**:
-  - Common: Gray
-  - Rare: Blue (#3b82f6)
-  - Epic: Purple (#a855f7)
-  - Legendary: Gold (#fbbf24)
-- **UI**: Rounded cards, smooth transitions, DNA helix animations
-- **Race Track**: Side-scrolling 2D with teardrop-shaped racers
-
-## 🧪 Development
-
-### Run Backend Tests
-```bash
-cd backend
-npm test
-```
-
-### Build Frontend for Production
-```bash
-cd frontend
-npm run build
-```
-
-### Database Migrations
-To reset the database:
+Run the database migrations to create tables:
 ```bash
 cd backend
 npm run migrate
+```
+
+Seed the database with initial card data:
+```bash
 npm run seed
 ```
 
-## 🚢 Deployment
+### 5. Start the Servers
 
-### Backend
-1. Set up PostgreSQL database (Supabase, AWS RDS, etc.)
-2. Deploy to Render, Heroku, or similar
-3. Set environment variables
-4. Run migrations in production
+You'll need to run both servers in separate terminal windows:
 
-### Frontend
-1. Build: `npm run build`
-2. Deploy to Vercel, Netlify, or similar
-3. Set `VITE_API_URL` and `VITE_SOCKET_URL` environment variables
+#### Terminal 1 - API Server
+```bash
+cd backend
+npm run dev
+```
+The API server will start on `http://localhost:3001`
 
-## 🎭 Humor & Flavor
+#### Terminal 2 - Socket.io Server
+```bash
+cd backend
+node src/socketIndex.js
+```
+The Socket.io server will start on `http://localhost:3002`
 
-The game embraces absurdist humor with:
-- AI-themed racer names (GPT-Racer, Claude-Sprint, etc.)
-- Satirical race commentary
-- Self-aware mechanics
-- DNA Credits as currency
-- Evolution into "AI Avatars"
+#### Terminal 3 - Frontend
+```bash
+cd frontend
+npm run dev
+```
+The frontend will start on `http://localhost:5173`
 
-## 📜 License
+## 🎮 How to Play
 
-MIT License - Feel free to use this for hackathons, learning, or fun!
+### 1. Create an Account
+- Navigate to `http://localhost:5173`
+- Click "Sign Up" and create your account
+- You'll receive 10 starter cards automatically
+
+### 2. Build Your Deck
+- Go to "Deck" in the navigation
+- Click "New Deck"
+- Select exactly 8 cards from your collection
+- Name your deck and save it
+
+### 3. Start a Battle
+- Click "Battle" in the navigation
+- Ensure you have a deck selected
+- Click "Find Match"
+- Wait for matchmaking to find an opponent
+
+### 4. During Battle
+- Deploy cards by clicking on them, then clicking on the arena
+- Each card costs elixir (shown on the card)
+- Elixir regenerates automatically (1 per 2.8 seconds, max 10)
+- Destroy enemy towers to win
+- Battle lasts 3 minutes
+- Destroying the King Tower (center) results in instant victory
+
+### 5. Post-Battle
+- Earn trophies and gold based on performance
+- Use gold to upgrade your cards
+- Climb the leaderboard!
+
+## 📁 Project Structure
+
+```
+/
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # React components
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── BattleArena.jsx
+│   │   │   └── BattleUI.jsx
+│   │   ├── game/            # Three.js game logic
+│   │   │   ├── AssetLoader.js
+│   │   │   ├── BattleScene.js
+│   │   │   └── CombatSystem.js
+│   │   ├── pages/           # Page components
+│   │   │   ├── Home.jsx
+│   │   │   ├── Battle.jsx
+│   │   │   ├── DeckBuilder.jsx
+│   │   │   ├── CardCollection.jsx
+│   │   │   └── Profile.jsx
+│   │   ├── services/        # API & Socket services
+│   │   │   ├── api.js
+│   │   │   └── socketService.js
+│   │   ├── store/           # State management
+│   │   │   ├── useAuthStore.js
+│   │   │   ├── useGameStore.js
+│   │   │   └── useCardStore.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   └── public/
+│       └── models/          # 3D character models
+│           └── characters/
+├── backend/
+│   └── src/
+│       ├── config/          # Database & config
+│       │   ├── database.js
+│       │   ├── migrate.js
+│       │   └── seed.js
+│       ├── middleware/      # Express middleware
+│       │   └── authMiddleware.js
+│       ├── models/          # Database models
+│       │   ├── UserModel.js
+│       │   ├── CardModel.js
+│       │   ├── DeckModel.js
+│       │   └── MatchModel.js
+│       ├── routes/          # API routes
+│       │   ├── authRoutes.js
+│       │   ├── cardRoutes.js
+│       │   ├── deckRoutes.js
+│       │   └── userRoutes.js
+│       ├── services/        # Business logic
+│       │   └── matchmakingService.js
+│       ├── websocket/       # Socket.io handlers
+│       │   └── battleHandler.js
+│       ├── index.js         # API server
+│       └── socketIndex.js   # Socket.io server
+└── KayKit_Adventurers_2.0_FREE/  # 3D assets
+```
+
+## 🎴 Card Types
+
+### Troops
+- **Knight** (Common, 3 elixir) - Balanced melee fighter
+- **Barbarian** (Common, 5 elixir) - High damage warrior
+- **Mage** (Rare, 4 elixir) - Ranged spellcaster with area damage
+- **Ranger** (Rare, 3 elixir) - Swift archer with long range
+- **Rogue** (Epic, 4 elixir) - Fast assassin with burst damage
+- **Giant** (Rare, 5 elixir) - Massive tank
+- **Archers** (Common, 3 elixir) - Pair of ranged attackers
+- **Elite Barbarian** (Epic, 6 elixir) - Fast and powerful
+- **Wizard** (Legendary, 5 elixir) - Powerful splash damage
+
+### Spells
+- **Fireball** (Rare, 4 elixir) - Area damage
+- **Freeze** (Epic, 4 elixir) - Freezes enemies
+- **Heal** (Common, 3 elixir) - Heals friendly troops
+
+### Buildings
+- **Arrow Tower** (Common, 3 elixir) - Defensive tower
+- **Cannon** (Common, 3 elixir) - Ground defense
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Create new account
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
+
+### Cards
+- `GET /api/cards` - Get all cards
+- `GET /api/cards/user` - Get user's card collection
+- `POST /api/cards/:id/upgrade` - Upgrade a card
+
+### Decks
+- `GET /api/decks` - Get user's decks
+- `POST /api/decks` - Create new deck
+- `PUT /api/decks/:id` - Update deck
+- `DELETE /api/decks/:id` - Delete deck
+
+### Users
+- `GET /api/users/:id` - Get user profile
+- `GET /api/users/leaderboard/top` - Get leaderboard
+- `GET /api/users/:id/matches` - Get match history
+
+## 🎯 WebSocket Events
+
+### Client → Server
+- `matchmaking:join` - Join matchmaking queue
+- `matchmaking:leave` - Leave matchmaking queue
+- `battle:deploy` - Deploy a card
+- `battle:emote` - Send emote
+- `battle:surrender` - Surrender match
+
+### Server → Client
+- `matchmaking:found` - Match found
+- `battle:elixir_update` - Elixir updated
+- `battle:unit_deployed` - Unit deployed
+- `battle:tower_damaged` - Tower took damage
+- `battle:tower_destroyed` - Tower destroyed
+- `battle:timer_update` - Time remaining updated
+- `battle:end` - Match ended
+
+## 🎨 3D Models
+
+The game uses the KayKit Adventurers 2.0 FREE pack with the following characters:
+- Knight (Knight.glb)
+- Barbarian (Barbarian.glb)
+- Mage (Mage.glb)
+- Ranger (Ranger.glb)
+- Rogue (Rogue.glb / Rogue_Hooded.glb)
+
+Models are automatically loaded from `/frontend/public/models/characters/`
+
+## 🐛 Troubleshooting
+
+### Port Already in Use
+If you get a "port already in use" error:
+```bash
+# Kill process on port 3001
+lsof -ti:3001 | xargs kill
+
+# Kill process on port 3002
+lsof -ti:3002 | xargs kill
+
+# Kill process on port 5173
+lsof -ti:5173 | xargs kill
+```
+
+### Database Connection Issues
+Make sure PostgreSQL is running:
+```bash
+# Check status
+pg_ctl status
+
+# Start PostgreSQL
+brew services start postgresql
+```
+
+### 3D Models Not Loading
+Ensure the models are copied to the public folder:
+```bash
+cd /Users/sukhman/Go-On-Hacks
+cp -r KayKit_Adventurers_2.0_FREE/Characters/gltf/* frontend/public/models/characters/
+```
+
+### CORS Issues
+The backend is configured to allow all origins in development. If you have issues:
+- Check that both servers are running
+- Verify the proxy configuration in `frontend/vite.config.js`
+
+## 🔐 Security Notes
+
+⚠️ **Important for Production**:
+- Change `JWT_SECRET` to a strong, random value
+- Enable PostgreSQL SSL
+- Add rate limiting
+- Implement input validation
+- Use environment-specific configurations
+- Add HTTPS
+- Implement proper CORS policies
+
+## 📝 License
+
+This project uses the KayKit Adventurers 2.0 asset pack. Please review the license in `KayKit_Adventurers_2.0_FREE/License.txt`.
 
 ## 🤝 Contributing
 
-This is a hackathon project, but contributions are welcome!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 🐛 Known Issues
+## 📞 Support
 
-- PvP matchmaking uses in-memory queue (use Redis for production)
-- No replay system yet
-- Limited mobile optimization
+For issues and questions, please open an issue on the GitHub repository.
 
-## 🎉 Credits
+## 🎉 Acknowledgments
 
-Built with ❤️ for hackathons and AI enthusiasts everywhere!
+- KayKit for the amazing 3D character models
+- Three.js community for excellent documentation
+- Clash Royale by Supercell for the inspiration
 
 ---
 
-**Ready to race? May the best genes win!** 🧬🏁
+Made with ❤️ using React, Three.js, and Node.js
 

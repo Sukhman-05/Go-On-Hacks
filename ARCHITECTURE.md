@@ -1,432 +1,522 @@
-# 🏗️ System Architecture
+# System Architecture
 
 ## Overview
-
-Sperm Racing Simulator is a full-stack web application with real-time multiplayer capabilities.
+This document describes the technical architecture of the Clash Royale 3D Clone.
 
 ## High-Level Architecture
 
 ```
-┌─────────────────┐         ┌──────────────────┐         ┌──────────────┐
-│   React Frontend │ ◄─────► │  Express API     │ ◄─────► │  PostgreSQL  │
-│   (Port 3000)    │  HTTP   │  (Port 3001)     │  SQL    │  Database    │
-└─────────────────┘         └──────────────────┘         └──────────────┘
-        │                            │
-        │ WebSocket                  │
-        ▼                            ▼
-┌─────────────────┐         ┌──────────────────┐
-│  Socket.IO      │ ◄─────► │  Socket.IO       │
-│  Client         │         │  Server          │
-│                 │         │  (Port 3002)     │
-└─────────────────┘         └──────────────────┘
-```
-
-## Backend Architecture
-
-### API Server (Express)
-
-```
-/backend/src/
-├── config/           # Configuration & database setup
-│   ├── database.js   # PostgreSQL connection pool
-│   ├── auth.js       # JWT configuration
-│   ├── migrate.js    # Database schema migrations
-│   └── seed.js       # Test data seeding
-│
-├── middleware/       # Express middleware
-│   └── authMiddleware.js  # JWT token verification
-│
-├── models/          # Data access layer
-│   ├── UserModel.js      # User CRUD operations
-│   ├── RacerModel.js     # Racer CRUD operations
-│   ├── RaceModel.js      # Race CRUD operations
-│   ├── BetModel.js       # Betting CRUD operations
-│   ├── TransactionModel.js
-│   └── EvolutionModel.js
-│
-├── services/        # Business logic
-│   ├── gachaService.js        # Racer generation & stats
-│   ├── raceSimulationService.js # Physics simulation
-│   ├── economyService.js      # Currency & transactions
-│   ├── evolutionService.js    # Evolution & breeding
-│   └── matchmakingService.js  # PvP matching
-│
-├── routes/          # API endpoints
-│   ├── authRoutes.js      # /auth/login, /auth/register
-│   ├── userRoutes.js      # /api/user/*
-│   ├── summonRoutes.js    # /api/summon
-│   ├── raceRoutes.js      # /api/race/*
-│   ├── betRoutes.js       # /api/bet/*
-│   ├── evolveRoutes.js    # /api/evolve/*
-│   └── leaderboardRoutes.js
-│
-├── utils/           # Utilities
-│   ├── rng.js            # Random number generation (seeded)
-│   └── statWeighting.js  # Stat distribution algorithms
-│
-├── websocket/       # Real-time PvP
-│   ├── socketServer.js   # Socket.IO server setup
-│   └── raceRooms.js      # Race room management
-│
-├── index.js         # Main API server entry
-└── socketIndex.js   # WebSocket server entry
-```
-
-### Database Schema
-
-```sql
-users
-  - id (PK)
-  - username (unique)
-  - email (unique)
-  - password_hash
-  - wallet_balance
-  - created_at
-
-racers
-  - id (PK)
-  - user_id (FK → users)
-  - name
-  - stats (JSONB: {speed, motility, endurance, luck})
-  - rarity (common|rare|epic|legendary)
-  - xp
-  - generation
-  - parent_id (FK → racers, nullable)
-  - evolved (boolean)
-  - created_at
-
-races
-  - id (PK)
-  - race_type (pve|pvp)
-  - participants (JSONB array)
-  - results (JSONB)
-  - winner_id
-  - race_seed (for replay)
-  - timestamp
-
-bets
-  - id (PK)
-  - user_id (FK → users)
-  - race_id (FK → races)
-  - racer_id (FK → racers)
-  - amount
-  - outcome (win|loss)
-  - resolved (boolean)
-  - created_at
-
-evolutions
-  - id (PK)
-  - racer_id (FK → racers)
-  - old_form
-  - new_form
-  - evolved_at
-
-transactions
-  - id (PK)
-  - user_id (FK → users)
-  - transaction_type (summon|race_win|bet_won|etc.)
-  - amount (positive for gains, negative for costs)
-  - reference_id (race_id, bet_id, etc.)
-  - timestamp
+┌─────────────────────────────────────────────────────────────┐
+│                         CLIENT (Browser)                      │
+├─────────────────────────────────────────────────────────────┤
+│  React App (Port 5173)                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   UI Layer   │  │  Game Layer  │  │ State Layer  │      │
+│  │  (Components)│  │  (Three.js)  │  │  (Zustand)   │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                 │                  │               │
+│         └─────────────────┴──────────────────┘               │
+│                           │                                  │
+│                ┌──────────┴──────────┐                      │
+│                │                     │                      │
+│         ┌──────▼──────┐      ┌──────▼──────┐              │
+│         │  Axios/HTTP │      │  Socket.io  │              │
+│         │  (REST API) │      │  (WebSocket)│              │
+│         └──────┬──────┘      └──────┬──────┘              │
+└────────────────┼──────────────────────┼───────────────────┘
+                 │                      │
+                 │                      │
+        ┌────────▼──────────┐  ┌────────▼──────────┐
+        │   API Server      │  │  Socket Server    │
+        │   (Port 3001)     │  │   (Port 3002)     │
+        ├───────────────────┤  ├───────────────────┤
+        │  Express.js       │  │   Socket.io       │
+        │  JWT Middleware   │  │   Auth Handler    │
+        │  REST Endpoints   │  │   Battle Handler  │
+        │  Business Logic   │  │   Matchmaking     │
+        └────────┬──────────┘  └────────┬──────────┘
+                 │                      │
+                 └──────────┬───────────┘
+                            │
+                    ┌───────▼────────┐
+                    │   PostgreSQL   │
+                    │   (Port 5432)  │
+                    └────────────────┘
 ```
 
 ## Frontend Architecture
 
-### React App Structure
-
+### Directory Structure
 ```
-/frontend/src/
-├── components/      # Reusable UI components
-│   ├── Navbar.jsx
-│   ├── RacerCard.jsx      # Display racer with stats
-│   ├── BettingPanel.jsx   # Betting UI with slider
-│   ├── EvolutionModal.jsx # Evolution popup
-│   └── RaceCanvas.jsx     # Phaser game wrapper
-│
-├── pages/          # Route pages
-│   ├── Login.jsx        # Auth: Login
-│   ├── Register.jsx     # Auth: Register
-│   ├── Home.jsx         # Dashboard
-│   ├── Summon.jsx       # Gacha summon page
-│   ├── RaceSetup.jsx    # Pre-race configuration
-│   ├── RaceViewer.jsx   # Live race view
-│   ├── Results.jsx      # Post-race results
-│   ├── Leaderboard.jsx  # Rankings
-│   └── Profile.jsx      # User profile & collection
-│
-├── game/           # Phaser.js game
-│   └── RaceScene.js     # 2D race visualization
-│
-├── services/       # API communication
-│   ├── api.js           # REST API client (Axios)
-│   └── socketService.js # WebSocket client (Socket.IO)
-│
-├── store/          # State management (Zustand)
-│   ├── useAuthStore.js  # User & auth state
-│   ├── useGameStore.js  # Racers & balance
-│   └── useRaceStore.js  # Active race state
-│
-├── utils/          # Utilities
-│   ├── formatters.js    # Number, currency, date formatting
-│   └── constants.js     # Game constants
-│
-├── App.jsx         # Root component with routing
-├── main.jsx        # React entry point
-└── index.css       # Global styles (TailwindCSS)
+frontend/src/
+├── components/          # React UI components
+│   ├── Navbar.jsx      # Navigation bar
+│   ├── BattleArena.jsx # 3D battle container
+│   └── BattleUI.jsx    # Battle interface overlays
+├── game/               # Three.js game engine
+│   ├── AssetLoader.js  # 3D model loading
+│   ├── BattleScene.js  # 3D scene setup
+│   └── CombatSystem.js # Combat logic
+├── pages/              # Route pages
+│   ├── Home.jsx
+│   ├── Battle.jsx
+│   ├── DeckBuilder.jsx
+│   ├── CardCollection.jsx
+│   └── Profile.jsx
+├── services/           # External communication
+│   ├── api.js          # HTTP client
+│   └── socketService.js# WebSocket client
+└── store/              # State management
+    ├── useAuthStore.js
+    ├── useGameStore.js
+    └── useCardStore.js
 ```
 
-### State Management (Zustand)
-
-**useAuthStore**
-- Stores: user, token
-- Actions: setAuth, updateBalance, logout
-- Persisted to localStorage
-
-**useGameStore**
-- Stores: racers[], selectedRacer, balance
-- Actions: setRacers, addRacer, updateRacer, selectRacer
-
-**useRaceStore**
-- Stores: currentRace, frames[], currentFrame, winner, rewards
-- Actions: setCurrentRace, setFrames, advanceFrame, setWinner
-- Cleared after each race
-
-### Routing
-
+### Component Hierarchy
 ```
-/login           → Login page
-/register        → Register page
-/                → Home dashboard (protected)
-/summon          → Summon page (protected)
-/race            → Race setup (protected)
-/race/:raceId    → Race viewer (protected)
-/results         → Results page (protected)
-/leaderboard     → Leaderboard (protected)
-/profile         → User profile (protected)
+App
+├── Navbar
+└── Router
+    ├── Home
+    ├── Login
+    ├── Register
+    ├── Battle
+    │   └── BattleArena
+    │       ├── BattleScene (Three.js)
+    │       │   ├── Arena
+    │       │   ├── Towers
+    │       │   ├── Units
+    │       │   └── CombatSystem
+    │       └── BattleUI
+    │           ├── ElixirBar
+    │           ├── TowerIndicators
+    │           ├── HandCards
+    │           └── Timer
+    ├── DeckBuilder
+    ├── CardCollection
+    └── Profile
 ```
 
-## Data Flow
-
-### 1. Summon Flow
-
+### State Flow
 ```
-User clicks "Summon"
-  → Frontend: POST /api/summon
-  → Backend: gachaService.performGachaPull()
-    → Generate random stats (100 points)
-    → Determine rarity based on variance
-    → Generate unique name
-  → Backend: RacerModel.create()
-  → Backend: economyService.processSummonPayment()
-    → Deduct 100 DNA Credits
-    → Log transaction
-  → Response: new racer data
-  → Frontend: addRacer to store
-  → Frontend: Show summoning animation
-```
-
-### 2. PvE Race Flow
-
-```
-User selects racer & starts race
-  → Frontend: POST /api/race/pve { racerId, betAmount }
-  → Backend: Generate AI opponent
-  → Backend: raceSimulationService.simulateRace()
-    → Generate race seed
-    → Run 60-frame physics simulation
-    → Return winner & frame data
-  → Backend: Create race record
-  → Backend: Update racer XP
-  → Backend: Distribute rewards
-  → Backend: Resolve bets
-  → Response: race results + frames
-  → Frontend: Navigate to /race/:id
-  → Frontend: Play race animation (Phaser.js)
-  → Frontend: Navigate to /results
+User Action
+    ↓
+Component Handler
+    ↓
+Zustand Store Action
+    ↓
+API/Socket Service
+    ↓
+Backend Processing
+    ↓
+Response/Event
+    ↓
+Store Update
+    ↓
+Component Re-render
 ```
 
-### 3. PvP Race Flow
+## Backend Architecture
 
+### Directory Structure
 ```
-User joins matchmaking
-  → Frontend: connectSocket()
-  → Frontend: emit('joinMatchmaking', { racerId, wager })
-  → Backend: matchmakingService.joinQueue()
-  → Backend: Find match with similar power level
-  → Backend: Create race room
-  → Backend: emit('matchFound') to both players
-  → Backend: Countdown 3...2...1...GO!
-  → Backend: Simulate race
-  → Backend: emit('raceUpdate') every second (60 frames)
-  → Frontend: Update Phaser scene in real-time
-  → Backend: emit('raceEnd', { winner, rewards })
-  → Backend: Update XP, distribute rewards
-  → Frontend: Navigate to /results
-```
-
-### 4. Evolution Flow
-
-```
-Racer reaches 500 XP
-  → Frontend: Shows evolution prompt
-  → User clicks "Evolve"
-  → Frontend: POST /api/evolve/:racerId
-  → Backend: Check eligibility (XP >= 500)
-  → Backend: Generate AI Avatar name
-  → Backend: Mark racer as evolved
-  → Backend: Create evolution record
-  → Response: evolution data
-  → Frontend: Show evolution animation
-  → Frontend: Update racer in store
+backend/src/
+├── config/
+│   ├── database.js     # PostgreSQL connection
+│   ├── migrate.js      # Schema migrations
+│   └── seed.js         # Initial data
+├── middleware/
+│   └── authMiddleware.js # JWT verification
+├── models/             # Database models
+│   ├── UserModel.js
+│   ├── CardModel.js
+│   ├── DeckModel.js
+│   └── MatchModel.js
+├── routes/             # REST API routes
+│   ├── authRoutes.js
+│   ├── cardRoutes.js
+│   ├── deckRoutes.js
+│   └── userRoutes.js
+├── services/           # Business logic
+│   └── matchmakingService.js
+├── websocket/          # Socket.io handlers
+│   └── battleHandler.js
+├── index.js            # HTTP server
+└── socketIndex.js      # WebSocket server
 ```
 
-## Key Algorithms
-
-### Stat Distribution
-
-```javascript
-// Distribute 100 points across 4 stats (10-40 range)
-function distributeStats() {
-  const stats = { speed: 10, motility: 10, endurance: 10, luck: 10 };
-  let remaining = 60;
-  
-  while (remaining > 0) {
-    const stat = randomChoice(['speed', 'motility', 'endurance', 'luck']);
-    if (stats[stat] < 40) {
-      stats[stat]++;
-      remaining--;
-    }
-  }
-  
-  return stats;
-}
+### Request Flow - REST API
+```
+HTTP Request
+    ↓
+Express Router
+    ↓
+Auth Middleware (if protected)
+    ↓
+Route Handler
+    ↓
+Model Method
+    ↓
+PostgreSQL Query
+    ↓
+Response with Data
 ```
 
-### Rarity Determination
-
-```javascript
-// Higher variance = more specialized = rarer
-function determineRarity(stats) {
-  const variance = calculateVariance(stats); // Standard deviation
-  
-  if (variance >= 10) return 'legendary'; // ~2%
-  if (variance >= 7) return 'epic';      // ~8%
-  if (variance >= 5) return 'rare';      // ~20%
-  return 'common';                        // ~70%
-}
+### Request Flow - WebSocket
+```
+Socket Event
+    ↓
+Socket.io Server
+    ↓
+Auth Verification
+    ↓
+Event Handler
+    ↓
+Matchmaking/Battle Service
+    ↓
+Database Update
+    ↓
+Emit to Client(s)
 ```
 
-### Race Simulation
+## Database Schema
 
-```javascript
-// Physics-based race simulation
-for (let frame = 0; frame <= 60; frame++) {
-  racers.forEach(racer => {
-    // Calculate velocity
-    const baseSpeed = racer.stats.speed * 0.4;
-    const agility = racer.stats.motility * 0.2;
-    const staminaFactor = racer.stamina / 100;
-    racer.velocity = (baseSpeed + agility) * staminaFactor;
-    
-    // Apply luck
-    if (random() < racer.stats.luck / 100) {
-      racer.velocity *= 1.2; // Lucky boost!
-    }
-    
-    // Update position
-    racer.position += racer.velocity * dt;
-    
-    // Deplete stamina
-    const drain = (100 - racer.stats.endurance) * 0.1;
-    racer.stamina = max(0, racer.stamina - drain);
-  });
-  
-  // Record frame
-  frames.push({ time: frame, positions: [...racers] });
-}
+### Entity Relationship Diagram
+```
+┌─────────────┐
+│    users    │
+├─────────────┤
+│ id (PK)     │───┐
+│ username    │   │
+│ email       │   │
+│ pass_hash   │   │
+│ trophies    │   │
+│ gold        │   │
+│ gems        │   │
+│ level       │   │
+└─────────────┘   │
+                  │
+                  │ 1:N
+                  │
+         ┌────────┴─────────┬─────────────┬──────────────┐
+         │                  │             │              │
+         ▼                  ▼             ▼              ▼
+┌─────────────┐    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ user_cards  │    │   decks     │  │  matches    │  │  matches    │
+├─────────────┤    ├─────────────┤  │ (player1)   │  │ (player2)   │
+│ id (PK)     │    │ id (PK)     │  ├─────────────┤  ├─────────────┤
+│ user_id(FK) │    │ user_id(FK) │  │ id (PK)     │  │ id (PK)     │
+│ card_id(FK) │───┐│ card_slot_1 │  │ player1_id  │  │ player2_id  │
+│ level       │   ││ card_slot_2 │  │ player2_id  │  │ winner_id   │
+│ quantity    │   ││ ...         │  │ winner_id   │  │ duration    │
+└─────────────┘   ││ card_slot_8 │  │ trophies    │  │ replay      │
+                  │└─────────────┘  │ gold        │  └─────────────┘
+                  │                 └─────────────┘
+                  │
+                  │ N:1
+                  │
+                  ▼
+         ┌─────────────┐
+         │    cards    │
+         ├─────────────┤
+         │ id (PK)     │
+         │ name        │
+         │ type        │
+         │ rarity      │
+         │ elixir_cost │
+         │ stats       │
+         └─────────────┘
 ```
 
-### Breeding (Inheritance)
+## Authentication Flow
 
-```javascript
-// 60% parent stats + 40% random
-function inheritStats(parentStats) {
-  const childStats = { speed: 10, motility: 10, endurance: 10, luck: 10 };
-  let remaining = 60;
-  
-  // Inherit 60% from parent
-  for (const stat in parentStats) {
-    const inherited = floor((parentStats[stat] - 10) * 0.6);
-    childStats[stat] += inherited;
-    remaining -= inherited;
-  }
-  
-  // Random 40%
-  while (remaining > 0) {
-    const stat = randomChoice(['speed', 'motility', 'endurance', 'luck']);
-    if (childStats[stat] < 40) {
-      childStats[stat]++;
-      remaining--;
-    }
-  }
-  
-  return childStats;
-}
+```
+Registration:
+Client → POST /api/auth/register {username, email, password}
+    ↓
+Backend → Hash password with bcrypt
+    ↓
+Backend → Insert user into database
+    ↓
+Backend → Add starter cards to user
+    ↓
+Backend → Generate JWT token
+    ↓
+Backend → Return {token, user}
+    ↓
+Client → Store token in localStorage
+
+Login:
+Client → POST /api/auth/login {email, password}
+    ↓
+Backend → Find user by email
+    ↓
+Backend → Verify password with bcrypt
+    ↓
+Backend → Generate JWT token
+    ↓
+Backend → Return {token, user}
+    ↓
+Client → Store token in localStorage
+
+Protected Request:
+Client → GET /api/cards/user (with Authorization: Bearer TOKEN)
+    ↓
+Backend → Extract token from header
+    ↓
+Backend → Verify JWT
+    ↓
+Backend → Attach user info to request
+    ↓
+Backend → Process request
+    ↓
+Backend → Return data
 ```
 
-## Performance Considerations
+## Matchmaking Flow
 
-### Backend
-- **Connection Pooling**: PostgreSQL pool for efficient connections
-- **Indexing**: Indexes on user_id, race_id foreign keys
-- **Caching**: In-memory matchmaking queue (should use Redis in production)
+```
+Player 1 Joins Queue:
+Client → Socket: matchmaking:join {deckId}
+    ↓
+Server → Verify deck exists
+    ↓
+Server → Add to queue with trophy info
+    ↓
+Server → Try to find match
+
+Player 2 Joins Queue:
+Client → Socket: matchmaking:join {deckId}
+    ↓
+Server → Add to queue
+    ↓
+Server → Find Player 1 (trophy diff < 200)
+    ↓
+Server → Create match in database
+    ↓
+Server → Initialize match state
+    ↓
+Server → Emit matchmaking:found to both players
+    ↓
+Server → Start elixir generation interval
+    ↓
+Server → Start match timer (3 min)
+
+During Battle:
+Client → Socket: battle:deploy {cardId, position}
+    ↓
+Server → Validate elixir cost
+    ↓
+Server → Deduct elixir
+    ↓
+Server → Create unit
+    ↓
+Server → Emit battle:unit_deployed to both
+    ↓
+Client → Render unit in 3D scene
+    ↓
+Combat System → Auto-target and attack
+    ↓
+Client → Socket: battle:tower_damage {tower, damage}
+    ↓
+Server → Update tower health
+    ↓
+Server → Emit battle:tower_damaged
+    ↓
+Server → Check win condition
+    ↓
+Server → If won: matchmaking:endMatch
+
+Match End:
+Server → Calculate trophy changes
+    ↓
+Server → Calculate gold rewards
+    ↓
+Server → Update database
+    ↓
+Server → Emit battle:end to both players
+    ↓
+Client → Show results screen
+```
+
+## 3D Rendering Pipeline
+
+```
+Scene Initialization:
+BattleScene.init()
+    ↓
+Create THREE.Scene
+    ↓
+Create PerspectiveCamera
+    ↓
+Create WebGLRenderer with shadows
+    ↓
+Add OrbitControls
+    ↓
+Create Arena (ground, river, bridges)
+    ↓
+Create Towers (6 total, 3 per side)
+    ↓
+Add Lights (ambient, directional, hemisphere)
+    ↓
+Initialize CombatSystem
+    ↓
+Start Animation Loop
+
+Unit Spawning:
+User deploys card
+    ↓
+AssetLoader.cloneModel(characterName)
+    ↓
+Position model at click location
+    ↓
+Add to scene
+    ↓
+Create unit object with stats
+    ↓
+Add to CombatSystem
+
+Animation Loop (60 FPS):
+requestAnimationFrame()
+    ↓
+Update controls (OrbitControls)
+    ↓
+CombatSystem.update(deltaTime)
+    │  ├─ For each unit:
+    │  │     ├─ Find target
+    │  │     ├─ Move towards target
+    │  │     └─ Attack if in range
+    │  └─ Remove dead units
+    ↓
+Update health bar positions
+    ↓
+Render scene with camera
+```
+
+## Communication Protocols
+
+### REST API (HTTP)
+- Used for: Authentication, CRUD operations, static data
+- Format: JSON
+- Authentication: Bearer token in Authorization header
+
+### WebSocket (Socket.io)
+- Used for: Real-time game events, matchmaking
+- Format: Event-based with JSON payloads
+- Authentication: Token in handshake
+
+### Key Events
+
+**Client → Server:**
+- `matchmaking:join` - Join matchmaking
+- `matchmaking:leave` - Leave queue
+- `battle:deploy` - Deploy card
+- `battle:emote` - Send emote
+- `battle:surrender` - Give up
+
+**Server → Client:**
+- `matchmaking:found` - Match ready
+- `battle:elixir_update` - Elixir changed
+- `battle:unit_deployed` - Unit spawned
+- `battle:tower_damaged` - Tower took damage
+- `battle:tower_destroyed` - Tower destroyed
+- `battle:timer_update` - Time remaining
+- `battle:end` - Match finished
+
+## Performance Optimizations
 
 ### Frontend
-- **Code Splitting**: Route-based code splitting with React Router
-- **State Management**: Zustand for minimal re-renders
-- **Asset Optimization**: Vite for fast builds and HMR
-- **Animation**: Framer Motion for smooth transitions
-- **Game Rendering**: Phaser.js with Canvas for efficient 2D rendering
+1. **Asset Loading**: Models loaded once and cloned
+2. **State Updates**: Minimal re-renders with Zustand
+3. **3D Rendering**: Shadow map size optimized (2048)
+4. **Fog**: Depth culling for distant objects
+5. **Delta Time**: Frame-independent physics
 
-## Security
+### Backend
+1. **Database Indexes**: On foreign keys and lookups
+2. **Connection Pooling**: PostgreSQL pool for efficiency
+3. **JWT Caching**: Decoded once per request
+4. **Match State**: In-memory during battle
+5. **Intervals**: Single timer per match
 
-- **Password Hashing**: bcrypt with salt rounds
-- **JWT**: Stateless authentication with 7-day expiration
-- **Authorization**: Middleware checks on protected routes
-- **Input Validation**: Server-side validation for all inputs
-- **SQL Injection**: Parameterized queries throughout
-- **CORS**: Configured for allowed origins only
+## Security Measures
 
-## Scalability
+### Authentication
+- Passwords hashed with bcrypt (10 rounds)
+- JWT with expiration (7 days)
+- Tokens stored client-side (localStorage)
+- Protected routes with middleware
 
-**Current Limitations:**
-- In-memory matchmaking queue
-- Single WebSocket server instance
+### Validation
+- Elixir validation server-side
+- Card ownership verification
+- Deck validity checks
+- Match state verification
 
-**Production Improvements:**
-- Redis for shared matchmaking queue
-- Socket.IO with Redis adapter for multi-instance WebSockets
-- CDN for frontend assets
-- Database read replicas
-- Rate limiting on API endpoints
+### Anti-Cheat
+- Server-authoritative game state
+- All combat calculated server-side
+- Tower damage verified
+- Replay data stored for review
 
-## Monitoring & Debugging
+## Scalability Considerations
 
-**Backend Logs:**
-- Request logging middleware
-- Error handling with stack traces
-- Database connection status
+### Current Architecture
+- Single server design
+- In-memory match state
+- Direct database connections
 
-**Frontend Logs:**
-- API error interceptor
-- WebSocket connection status
-- Console logs for key events
+### Future Improvements
+1. **Load Balancing**: Multiple API servers
+2. **Redis**: Shared session/match state
+3. **Microservices**: Separate matchmaking service
+4. **Message Queue**: Async match processing
+5. **CDN**: Static assets delivery
+6. **Database Replication**: Read replicas
+7. **Horizontal Scaling**: Multiple Socket.io servers with adapter
 
-**Database:**
-- Transaction logs
-- Race history for replay
+## Deployment Architecture
+
+```
+Production Setup:
+┌────────────────────────────────────────────────┐
+│                    CDN                          │
+│              (Static Assets)                    │
+└─────────────────┬──────────────────────────────┘
+                  │
+┌─────────────────▼──────────────────────────────┐
+│              Load Balancer                      │
+└─────────┬──────────────────┬───────────────────┘
+          │                  │
+┌─────────▼────────┐  ┌──────▼──────────┐
+│  Frontend Server │  │  Backend Servers │
+│   (Nginx/Vite)   │  │  (PM2/Cluster)   │
+└──────────────────┘  └──────┬───────────┘
+                             │
+                      ┌──────▼───────────┐
+                      │   PostgreSQL     │
+                      │   (Managed DB)   │
+                      └──────────────────┘
+```
+
+## Technology Versions
+
+- Node.js: v18+
+- React: 18.2.0
+- Three.js: 0.159.0
+- Express: 4.18.2
+- Socket.io: 4.6.1
+- PostgreSQL: 14+
+- Zustand: 4.4.7
+- Tailwind CSS: 3.4.0
 
 ---
 
-This architecture provides a solid foundation for a real-time multiplayer game with complex game mechanics, while remaining hackathon-friendly and easy to understand.
+This architecture provides:
+- ✅ Real-time multiplayer
+- ✅ 3D rendering in browser
+- ✅ Scalable data model
+- ✅ Secure authentication
+- ✅ Responsive UI
+- ✅ Server-authoritative gameplay
 

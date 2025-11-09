@@ -1,79 +1,54 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { register } from '../services/api';
-import { useAuthStore } from '../store/useAuthStore';
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import useAuthStore from '../store/useAuthStore'
 
 function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const { register, loading, error } = useAuthStore()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
+    e.preventDefault()
+    
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      alert('Passwords do not match')
+      return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
+    const success = await register(username, email, password)
+    if (success) {
+      navigate('/')
     }
-
-    setLoading(true);
-
-    try {
-      const data = await register(username, email, password);
-      setAuth(data.user, data.token);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full"
-      >
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Sperm Racing
-          </h1>
-          <p className="text-xl text-gray-400">Battle for the Gene Pool</p>
-        </div>
-
-        <div className="bg-dark-card rounded-xl p-8 shadow-2xl border border-primary/20">
-          <h2 className="text-2xl font-bold mb-6">Create Account</h2>
+    <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] px-4 py-8">
+      <div className="w-full max-w-md">
+        <div className="bg-indigo-900/50 backdrop-blur-md p-8 rounded-2xl border border-indigo-700 shadow-2xl">
+          <h2 className="text-3xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+            Create Account
+          </h2>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded mb-4">
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-200">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium mb-2">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-dark rounded-lg border border-gray-600 focus:border-primary focus:outline-none transition"
+                className="w-full px-4 py-3 bg-indigo-950/50 border border-indigo-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                placeholder="YourUsername"
                 required
+                minLength={3}
               />
             </div>
 
@@ -83,7 +58,8 @@ function Register() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-dark rounded-lg border border-gray-600 focus:border-primary focus:outline-none transition"
+                className="w-full px-4 py-3 bg-indigo-950/50 border border-indigo-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                placeholder="your@email.com"
                 required
               />
             </div>
@@ -94,8 +70,10 @@ function Register() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-dark rounded-lg border border-gray-600 focus:border-primary focus:outline-none transition"
+                className="w-full px-4 py-3 bg-indigo-950/50 border border-indigo-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                placeholder="••••••••"
                 required
+                minLength={6}
               />
             </div>
 
@@ -105,31 +83,33 @@ function Register() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-dark rounded-lg border border-gray-600 focus:border-primary focus:outline-none transition"
+                className="w-full px-4 py-3 bg-indigo-950/50 border border-indigo-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                placeholder="••••••••"
                 required
+                minLength={6}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Register'}
+              {loading ? 'Creating Account...' : 'Sign Up'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-gray-400">
+          <p className="text-center mt-6 text-gray-400">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline">
+            <Link to="/login" className="text-purple-400 hover:text-purple-300">
               Login
             </Link>
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
-  );
+  )
 }
 
-export default Register;
+export default Register
 
