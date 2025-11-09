@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getRacers, getBalance } from '../services/api';
@@ -11,25 +11,50 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const { user, updateBalance } = useAuthStore();
   const { racers, setRacers } = useGameStore();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [racersData, balanceData] = await Promise.all([
-        getRacers(),
-        getBalance()
-      ]);
-      setRacers(racersData.racers);
-      updateBalance(balanceData.balance);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-    } finally {
-      setLoading(false);
+    // Skip if already loaded (handles React.StrictMode double execution)
+    if (hasLoadedRef.current) {
+      // If we already tried to load, ensure loading state is correct
+      if (loading && (racers.length > 0 || user?.wallet_balance !== undefined)) {
+        setLoading(false);
+      }
+      return;
     }
-  };
+    
+    // Check if we already have data in store
+    if (racers.length > 0 && user?.wallet_balance !== undefined) {
+      setLoading(false);
+      hasLoadedRef.current = true;
+      return;
+    }
+    
+    // Mark as loading and start fetch
+    hasLoadedRef.current = true;
+    setLoading(true);
+
+    const loadData = async () => {
+      try {
+        const [racersData, balanceData] = await Promise.all([
+          getRacers(),
+          getBalance()
+        ]);
+        
+        setRacers(racersData.racers || []);
+        updateBalance(balanceData.balance || 0);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        setLoading(false);
+        // Reset flag on error to allow retry on next mount
+        hasLoadedRef.current = false;
+      }
+    };
+
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   if (loading) {
     return (

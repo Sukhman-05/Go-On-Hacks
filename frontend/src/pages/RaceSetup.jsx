@@ -17,7 +17,7 @@ function RaceSetup() {
   
   const navigate = useNavigate();
   const { racers, setRacers } = useGameStore();
-  const { setCurrentRace, setFrames, setRaceStatus } = useRaceStore();
+  const { setCurrentRace, setFrames, setRaceStatus, setRewards, setWinner } = useRaceStore();
 
   useEffect(() => {
     loadRacers();
@@ -47,18 +47,34 @@ function RaceSetup() {
     try {
       if (raceType === 'pve') {
         const raceData = await startPvERace(selectedRacerId, betAmount);
+        console.log('Race data received:', raceData);
+        
+        // Verify we have the necessary data
+        if (!raceData.race || !raceData.race.frames || raceData.race.frames.length === 0) {
+          throw new Error('Invalid race data received');
+        }
+        
+        // Set race data in store
         setCurrentRace(raceData.race);
         setFrames(raceData.race.frames);
         setRaceStatus('racing');
-        navigate('/race/' + raceData.race.id);
+        setRewards(raceData.rewards);
+        setWinner(raceData.race.winner);
+        setStarting(false);
+        
+        // Navigate after a tiny delay to ensure store is updated
+        setTimeout(() => {
+          navigate('/race/' + raceData.race.id);
+        }, 50);
       } else {
         // PvP - will be handled by WebSocket
+        setStarting(false);
         navigate('/race/pvp');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to start race');
+      console.error('Race start error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to start race');
       setRaceStatus('idle');
-    } finally {
       setStarting(false);
     }
   };

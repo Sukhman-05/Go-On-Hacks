@@ -14,9 +14,11 @@ export const useRaceStore = create((set) => ({
   
   setFrames: (frames) => set({ frames, currentFrame: 0 }),
   
-  advanceFrame: () => set((state) => ({
-    currentFrame: Math.min(state.currentFrame + 1, state.frames.length - 1)
-  })),
+  advanceFrame: () => set((state) => {
+    if (state.frames.length === 0) return state;
+    const nextFrame = Math.min(state.currentFrame + 1, state.frames.length - 1);
+    return { currentFrame: nextFrame };
+  }),
   
   setWinner: (winner) => set({ winner }),
   

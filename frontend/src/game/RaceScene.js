@@ -8,6 +8,7 @@ export default class RaceScene extends Phaser.Scene {
     this.racers = [];
     this.track = null;
     this.finishLine = null;
+    this.isReady = false;
   }
 
   preload() {
@@ -101,82 +102,108 @@ export default class RaceScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Start animation when race data is available
-    if (this.raceData) {
-      this.startRace();
-    }
+    // Mark scene as ready
+    this.isReady = true;
+    console.log('Phaser scene created and ready');
   }
 
   setRaceData(frames) {
+    console.log('Phaser: Setting race data', { framesLength: frames?.length });
     this.raceData = frames;
     this.currentFrame = 0;
     
     if (frames && frames.length > 0) {
       const firstFrame = frames[0];
       if (firstFrame.positions && firstFrame.positions.length >= 2) {
-        this.racer1Label.setText(firstFrame.positions[0].name);
-        this.racer2Label.setText(firstFrame.positions[1].name);
-        this.startRace();
+        if (this.racer1Label) {
+          this.racer1Label.setText(firstFrame.positions[0].name);
+        }
+        if (this.racer2Label) {
+          this.racer2Label.setText(firstFrame.positions[1].name);
+        }
+        // Update to first frame after a short delay to ensure scene is ready
+        this.time.delayedCall(100, () => {
+          this.updateToFrame(0);
+        });
       }
     }
   }
 
-  startRace() {
-    // Create a timer to update race positions
-    this.raceTimer = this.time.addEvent({
-      delay: 1000, // Update every second
-      callback: this.updateRaceFrame,
-      callbackScope: this,
-      loop: true
-    });
-  }
-
-  updateRaceFrame() {
-    if (!this.raceData || this.currentFrame >= this.raceData.length) {
-      if (this.raceTimer) {
-        this.raceTimer.remove();
-      }
+  updateToFrame(frameIndex) {
+    // Ensure scene is ready
+    if (!this.isReady) {
+      console.warn('Phaser scene not ready yet');
       return;
     }
 
-    const frame = this.raceData[this.currentFrame];
+    if (!this.raceData || frameIndex >= this.raceData.length || frameIndex < 0) {
+      console.warn('Invalid frame index for Phaser update', { frameIndex, dataLength: this.raceData?.length });
+      return;
+    }
+
+    const frame = this.raceData[frameIndex];
     if (!frame || !frame.positions || frame.positions.length < 2) {
-      this.currentFrame++;
+      console.warn('Invalid frame data for Phaser update', { frame, frameIndex });
       return;
     }
 
+    // Ensure racers are initialized
+    if (!this.racers || this.racers.length < 2) {
+      console.warn('Racers not initialized in Phaser scene', { racers: this.racers });
+      return;
+    }
+
+    this.currentFrame = frameIndex;
     const { width } = this.cameras.main;
     const trackLength = width - 100; // Account for start and finish
+    const RACE_DISTANCE = 1000; // meters
+
+    console.log(`Phaser: Updating to frame ${frameIndex}`, {
+      racer1Pos: frame.positions[0]?.position,
+      racer2Pos: frame.positions[1]?.position
+    });
 
     // Update racer positions
     frame.positions.forEach((racer, index) => {
       if (this.racers[index]) {
-        const progress = racer.position / 1000; // Assuming 1000m race
+        // Calculate progress (0 to 1)
+        const progress = Math.min(Math.max(racer.position / RACE_DISTANCE, 0), 1);
         const x = 50 + (progress * trackLength);
+        const targetX = Math.min(Math.max(x, 50), width - 50);
         
-        // Smooth movement
+        // Get current position (default to 50 if not set)
+        const currentX = this.racers[index].x !== undefined ? this.racers[index].x : 50;
+        
+        // Cancel any existing tweens for this racer
+        this.tweens.killTweensOf(this.racers[index]);
+        
+        // Always animate to new position for smooth movement
+        // Duration slightly less than frame interval (1000ms) for smooth transitions
         this.tweens.add({
           targets: this.racers[index],
-          x: Math.min(x, width - 50),
-          duration: 900,
+          x: targetX,
+          duration: 950,
           ease: 'Linear'
         });
 
-        // Update label position
-        if (index === 0 && this.racer1Label) {
-          this.racer1Label.x = Math.min(x, width - 50);
-        } else if (index === 1 && this.racer2Label) {
-          this.racer2Label.x = Math.min(x, width - 50);
+        // Update label position (follow racer smoothly)
+        const label = index === 0 ? this.racer1Label : this.racer2Label;
+        if (label) {
+          this.tweens.killTweensOf(label);
+          this.tweens.add({
+            targets: label,
+            x: targetX,
+            duration: 950,
+            ease: 'Linear'
+          });
         }
 
-        // Add particles for speed effect
-        if (racer.velocity > 10) {
+        // Add particles for speed effect (only occasionally to reduce overhead)
+        if (racer.velocity > 10 && Math.random() > 0.85) {
           this.addSpeedParticles(this.racers[index], index);
         }
       }
     });
-
-    this.currentFrame++;
   }
 
   addSpeedParticles(racer, index) {

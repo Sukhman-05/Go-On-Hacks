@@ -6,11 +6,18 @@ import { formatCredits } from '../utils/formatters';
 function Results() {
   const { currentRace, winner, rewards } = useRaceStore();
 
+  // Debug logging
+  console.log('Results page:', { currentRace, winner, rewards });
+
   if (!currentRace || !rewards) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <p className="text-xl text-gray-400 mb-4">No race results available</p>
+          <p className="text-sm text-gray-500 mb-4">
+            {!currentRace && 'Race data missing. '}
+            {!rewards && 'Rewards missing.'}
+          </p>
           <Link to="/race" className="btn-primary">
             Start a Race
           </Link>
@@ -19,7 +26,7 @@ function Results() {
     );
   }
 
-  const playerWon = currentRace.playerWon;
+  const playerWon = currentRace.playerWon !== undefined ? currentRace.playerWon : (winner && currentRace.winner === winner);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -93,7 +100,7 @@ function Results() {
             </div>
             <div className="flex justify-between">
               <span>Race Type:</span>
-              <span className="text-white uppercase">{currentRace.race?.race_type || 'PvE'}</span>
+              <span className="text-white uppercase">PvE</span>
             </div>
           </div>
         </motion.div>
