@@ -132,23 +132,118 @@ def calculate_performativeness_score(detected_items):
     percentage = min((total_score / max_possible_score) * 100, 100)
     return round(percentage, 1), detected_categories, total_score, max_possible_score
 
-def generate_brutal_roast(percentage, detected_categories):
-    """Generate an unhinged, brutal roast for users below 30% performativeness"""
-    roasts = [
-        f"Bruh. {percentage}%? You call THIS performative? A rock has more aesthetic sense than whatever tragic display of basic-ness you've got going on. You're not even trying - this looks like you got dressed in the dark by someone who's never heard of Instagram. WHERE are the feminist books? WHERE is the matcha? WHERE is the tote bag that screams 'I care about the environment but only if it's cute'? This is giving 'I shop at Target and think that's a personality trait' energy. EMBARRASSING.",
+def generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='brutal'):
+    """Generate a creative, unique roast using Gemini AI based on the actual image and context"""
+    try:
+        if roast_type == 'brutal':
+            # Brutal roast for < 30%
+            prompt = f"""You are a brutally honest, unhinged critic of performative male culture. Look at this image and create a SAVAGE, CREATIVE, and UNIQUE roast.
+
+Context:
+- Performativeness Score: {percentage}%
+- Detected Items: {', '.join(detected_items[:10]) if detected_items else 'Almost nothing'}
+- Detected Categories: {', '.join([c.replace('_', ' ').title() for c in detected_categories]) if detected_categories else 'None'}
+
+Your task:
+Create a BRUTAL, UNHINGED roast that is:
+1. Creative and unique - don't use generic phrases, be specific to what you see in the image
+2. Savage and brutal - roast them mercilessly but with style
+3. Funny and memorable - use clever metaphors, comparisons, and observations
+4. Reference specific things you see (or don't see) in the image
+5. Use emojis sparingly but effectively
+6. Be unhinged and dramatic - think like a fashion critic who's had too much coffee
+7. Make it PERSONAL to this specific image - comment on what's actually there (or missing)
+
+Tone: Unhinged, brutal, savage, but also clever and creative. Like if a TikTok commentator and a fashion critic had a baby who only drinks matcha.
+
+Length: 2-4 sentences. Make every word count.
+
+Just write the roast directly - no introduction, no labels, just pure unhinged roast energy."""
         
-        f"{percentage}%? HONEY. This is NOT it. This is giving 'my personality is my major' and 'I've never been to a thrift store' and 'I think a plain white tee is a statement piece.' You're out here looking like you discovered aesthetics yesterday and immediately gave up. Not a single tote bag in sight? No matcha? No bell hooks books strategically placed? This isn't performative culture, this is PERFORMANCE ART of how to miss the point entirely. Try harder, or don't, honestly.",
+        elif roast_type == 'mixed':
+            # Mixed feedback for 30-60%
+            prompt = f"""You are a brutally honest but fair critic of performative male culture. Look at this image and create a MIXED feedback that roasts them BUT ALSO gives genuine compliments.
+
+Context:
+- Performativeness Score: {percentage}%
+- Detected Items: {', '.join(detected_items[:10]) if detected_items else 'Few items'}
+- Detected Categories: {', '.join([c.replace('_', ' ').title() for c in detected_categories]) if detected_categories else 'Some categories'}
+
+Your task:
+Create a MIXED feedback that:
+1. STARTS with a light roast - point out what's missing or could be better (be creative and specific to the image)
+2. THEN transitions with "BUT..." or "HOWEVER..." 
+3. ENDS with genuine compliments - find something actually good about what you see (even if it's small)
+4. Be creative and unique - reference specific things in the image
+5. Balance: 40% roast, 60% compliment
+6. Make it feel like honest, constructive criticism with recognition of effort
+
+Tone: Like a friend who's honest but supportive. "Yeah you're not quite there BUT you're on the right track and here's what's actually good..."
+
+Length: 3-5 sentences.
+
+Format: 
+[Light creative roast about what's missing] BUT [genuine compliment about what you see]. [More specific positive observation about the image].
+
+Just write the feedback directly - no labels, just the mixed feedback."""
         
-        f"Okay so we're at {percentage}% which means... you're basically not even playing the game. This is like showing up to a fashion show in sweatpants and being surprised when you don't win. Where's the VIBE? Where's the AESTHETIC? Where's ANYTHING that suggests you understand what performative culture even is? You're out here raw-dogging reality with zero aesthetic curation and it shows. This is giving 'I don't own a single plant' and 'coffee is just brown water to me' energy. TRAGIC.",
+        else:
+            return None
         
-        f"{percentage}%? SWEETIE. This is so sad it's almost impressive. You've managed to create a look that says absolutely nothing except 'I exist and that's my whole personality.' No tote bag, no matcha latte, no feminist literature, no NOTHING. This is the aesthetic equivalent of a beige wall. You're not even in the ballpark - you're in the parking lot of a different stadium entirely. This isn't performative culture, this is performative FAILURE. Do better or don't, I'm not your mom.",
+        # Generate roast using Gemini
+        generation_config = {
+            "temperature": 0.9,  # Higher temperature for more creativity
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 300,
+        }
         
-        f"LISTEN. {percentage}% is not a score, it's a CRY FOR HELP. You've got the performativeness of a piece of plain toast. No offense to toast, at least it's useful. This? This is just... there. No matcha, no tote bags, no vintage finds, no INDICATION that you understand what's happening here. You're giving 'I bought this shirt at a gas station' when you should be giving 'I curated this look from three different thrift stores and a feminist bookstore.' This is giving NOTHING. Less than nothing. Negative vibes.",
+        response = model.generate_content(
+            [prompt, image],
+            generation_config=generation_config
+        )
         
-        f"Okay so {percentage}% means you're basically a blank canvas, except blank canvases have more potential. This is the performative equivalent of showing up to a potluck empty-handed and asking if anyone has extra plates. WHERE IS EVERYTHING? No books, no matcha, no aesthetic items, just... void. Empty space. Nothing. You're not even trying to be performative, you're just EXISTING and calling it a day. This isn't a vibe, it's a VACUUM. Step it up or step out, honestly.",
-    ]
-    
-    return random.choice(roasts)
+        # Get response text
+        roast_text = ""
+        try:
+            roast_text = response.text if hasattr(response, 'text') and response.text else ""
+        except:
+            try:
+                if hasattr(response, 'candidates') and response.candidates and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and len(candidate.content.parts) > 0:
+                        roast_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
+            except:
+                pass
+        
+        if roast_text and len(roast_text.strip()) > 20:
+            return roast_text.strip()
+        else:
+            # Fallback if AI generation fails
+            return generate_fallback_roast(percentage, detected_categories, roast_type)
+            
+    except Exception as e:
+        print(f"Error generating AI roast: {e}")
+        # Fallback if AI generation fails
+        return generate_fallback_roast(percentage, detected_categories, roast_type)
+
+def generate_fallback_roast(percentage, detected_categories, roast_type):
+    """Fallback roast if AI generation fails"""
+    if roast_type == 'brutal':
+        return f"Bruh. {percentage}%? You call THIS performative? WHERE are the feminist books? WHERE is the matcha? WHERE is the tote bag? This is giving 'I shop at Target and think that's a personality trait' energy. EMBARRASSING."
+    elif roast_type == 'mixed':
+        missing_items = []
+        if 'feminist_literature' not in detected_categories:
+            missing_items.append("feminist literature")
+        if 'matcha_latte' not in detected_categories:
+            missing_items.append("matcha")
+        if 'tote_bag' not in detected_categories:
+            missing_items.append("a tote bag")
+        
+        roast_part = f"Okay so {percentage}% means you're missing some key performative elements like {', '.join(missing_items[:3]) if missing_items else 'aesthetic items'}."
+        compliment_part = f" BUT you're on the right track! You've got some good basics going. Keep building on what you have!"
+        return roast_part + compliment_part
+    return None
 
 def generate_improvement_suggestions(detected_categories):
     """Generate improvement suggestions based on missing categories"""
@@ -489,10 +584,22 @@ Just list what you see that might match the performative male culture categories
         
         improvement_suggestions = generated_suggestions
         
-        # Generate brutal roast if percentage is below 30%
+        # Generate AI-powered roasts based on percentage
         roast = None
         if percentage < 30:
-            roast = generate_brutal_roast(percentage, detected_categories)
+            # Brutal roast for < 30%
+            try:
+                roast = generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='brutal')
+            except Exception as e:
+                print(f"Error generating brutal roast: {e}")
+                roast = generate_fallback_roast(percentage, detected_categories, 'brutal')
+        elif 30 <= percentage < 60:
+            # Mixed feedback (roast + compliments) for 30-60%
+            try:
+                roast = generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='mixed')
+            except Exception as e:
+                print(f"Error generating mixed feedback: {e}")
+                roast = generate_fallback_roast(percentage, detected_categories, 'mixed')
         
         # Get category details
         category_details = []
