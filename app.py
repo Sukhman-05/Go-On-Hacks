@@ -3,7 +3,6 @@ from flask_cors import CORS
 import google.generativeai as genai
 import os
 import base64
-import random
 from io import BytesIO
 from PIL import Image
 import json
@@ -132,119 +131,6 @@ def calculate_performativeness_score(detected_items):
     percentage = min((total_score / max_possible_score) * 100, 100)
     return round(percentage, 1), detected_categories, total_score, max_possible_score
 
-def generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='brutal'):
-    """Generate a creative, unique roast using Gemini AI based on the actual image and context"""
-    try:
-        if roast_type == 'brutal':
-            # Brutal roast for < 30%
-            prompt = f"""You are a brutally honest, unhinged critic of performative male culture. Look at this image and create a SAVAGE, CREATIVE, and UNIQUE roast.
-
-Context:
-- Performativeness Score: {percentage}%
-- Detected Items: {', '.join(detected_items[:10]) if detected_items else 'Almost nothing'}
-- Detected Categories: {', '.join([c.replace('_', ' ').title() for c in detected_categories]) if detected_categories else 'None'}
-
-Your task:
-Create a BRUTAL, UNHINGED roast that is:
-1. Creative and unique - don't use generic phrases, be specific to what you see in the image
-2. Savage and brutal - roast them mercilessly but with style
-3. Funny and memorable - use clever metaphors, comparisons, and observations
-4. Reference specific things you see (or don't see) in the image
-5. Use emojis sparingly but effectively
-6. Be unhinged and dramatic - think like a fashion critic who's had too much coffee
-7. Make it PERSONAL to this specific image - comment on what's actually there (or missing)
-
-Tone: Unhinged, brutal, savage, but also clever and creative. Like if a TikTok commentator and a fashion critic had a baby who only drinks matcha.
-
-Length: 2-4 sentences. Make every word count.
-
-Just write the roast directly - no introduction, no labels, just pure unhinged roast energy."""
-        
-        elif roast_type == 'mixed':
-            # Mixed feedback for 30-60%
-            prompt = f"""You are a brutally honest but fair critic of performative male culture. Look at this image and create a MIXED feedback that roasts them BUT ALSO gives genuine compliments.
-
-Context:
-- Performativeness Score: {percentage}%
-- Detected Items: {', '.join(detected_items[:10]) if detected_items else 'Few items'}
-- Detected Categories: {', '.join([c.replace('_', ' ').title() for c in detected_categories]) if detected_categories else 'Some categories'}
-
-Your task:
-Create a MIXED feedback that:
-1. STARTS with a light roast - point out what's missing or could be better (be creative and specific to the image)
-2. THEN transitions with "BUT..." or "HOWEVER..." 
-3. ENDS with genuine compliments - find something actually good about what you see (even if it's small)
-4. Be creative and unique - reference specific things in the image
-5. Balance: 40% roast, 60% compliment
-6. Make it feel like honest, constructive criticism with recognition of effort
-
-Tone: Like a friend who's honest but supportive. "Yeah you're not quite there BUT you're on the right track and here's what's actually good..."
-
-Length: 3-5 sentences.
-
-Format: 
-[Light creative roast about what's missing] BUT [genuine compliment about what you see]. [More specific positive observation about the image].
-
-Just write the feedback directly - no labels, just the mixed feedback."""
-        
-        else:
-            return None
-        
-        # Generate roast using Gemini
-        generation_config = {
-            "temperature": 0.9,  # Higher temperature for more creativity
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 300,
-        }
-        
-        response = model.generate_content(
-            [prompt, image],
-            generation_config=generation_config
-        )
-        
-        # Get response text
-        roast_text = ""
-        try:
-            roast_text = response.text if hasattr(response, 'text') and response.text else ""
-        except:
-            try:
-                if hasattr(response, 'candidates') and response.candidates and len(response.candidates) > 0:
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and len(candidate.content.parts) > 0:
-                        roast_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
-            except:
-                pass
-        
-        if roast_text and len(roast_text.strip()) > 20:
-            return roast_text.strip()
-        else:
-            # Fallback if AI generation fails
-            return generate_fallback_roast(percentage, detected_categories, roast_type)
-            
-    except Exception as e:
-        print(f"Error generating AI roast: {e}")
-        # Fallback if AI generation fails
-        return generate_fallback_roast(percentage, detected_categories, roast_type)
-
-def generate_fallback_roast(percentage, detected_categories, roast_type):
-    """Fallback roast if AI generation fails"""
-    if roast_type == 'brutal':
-        return f"Bruh. {percentage}%? You call THIS performative? WHERE are the feminist books? WHERE is the matcha? WHERE is the tote bag? This is giving 'I shop at Target and think that's a personality trait' energy. EMBARRASSING."
-    elif roast_type == 'mixed':
-        missing_items = []
-        if 'feminist_literature' not in detected_categories:
-            missing_items.append("feminist literature")
-        if 'matcha_latte' not in detected_categories:
-            missing_items.append("matcha")
-        if 'tote_bag' not in detected_categories:
-            missing_items.append("a tote bag")
-        
-        roast_part = f"Okay so {percentage}% means you're missing some key performative elements like {', '.join(missing_items[:3]) if missing_items else 'aesthetic items'}."
-        compliment_part = f" BUT you're on the right track! You've got some good basics going. Keep building on what you have!"
-        return roast_part + compliment_part
-    return None
-
 def generate_improvement_suggestions(detected_categories):
     """Generate improvement suggestions based on missing categories"""
     suggestions = []
@@ -332,111 +218,224 @@ Characteristics to check for:
 {chr(10).join(characteristics_list)}
 
 What to do:
-- Look through the image and spot any items that match the categories above
+- Look through the image and spot any items that match the categories above - be GENEROUS and INTERPRET BROADLY
 - Check clothing, books, beverages, bags, accessories, the environment, and other objects
-- For books: if you see books that seem feminist or written by feminist authors (even if you can't read the exact title), mention them. Look for books by women authors, books about feminism, gender, or social justice topics
-- Describe what you see in a natural, casual way
-- Don't worry about exact title matches - if a book looks like it could be feminist literature, mention it
-- Be thorough and observant - look at the background, small details, and context clues
+- For books: if you see ANY books, consider them - especially if they look like they could be feminist literature, literary fiction, or books by women authors. Don't require exact title matches - use your judgment and be lenient
+- For clothing: if something looks even remotely like baggy jeans, vintage style, or trendy items, include it
+- For beverages: if you see any coffee, tea, or matcha-like drinks, include them - don't worry about being 100% certain
+- For accessories: be generous with bags, keychains, and aesthetic items - if it could fit the vibe, mention it
+- For environment: if there's a cafe, bookstore, or cozy aesthetic setting, definitely mention it
+- When in doubt, err on the side of including items rather than excluding them
+- Describe what you see in a natural, casual way - don't overthink it
 
 Format your response in two sections:
 
 SECTION 1 - DETECTED ITEMS:
-List the items you found that match the categories. One item per line with a dash. Be specific but flexible - if you see a book that looks like feminist literature (even if you can't see the exact title), mention it. Describe what you observe naturally. Provide context about what you see - mention the setting, style, and any relevant details that relate to the performative characteristics.
+List the items you found that match the categories. One item per line with a dash. Be GENEROUS and LENIENT in your interpretation - it's better to include something that might match than to miss it. If something looks like it could fit any of the categories, go ahead and include it. Trust your instincts!
 
 SECTION 2 - IMPROVEMENT SUGGESTIONS:
-Give detailed, helpful feedback about what could boost the performativeness score. Provide more context and explanation:
-- Explain WHY certain items would help (e.g., "A matcha latte would fit the aesthetic because it's associated with mindful, trendy coffee culture")
-- Give specific examples and descriptions
-- Mention how items could be styled or positioned
-- Discuss the overall vibe and what's missing
-- Be conversational but informative - like you're giving detailed, thoughtful advice
-- Focus on high-value items from the categories that seem to be missing
-- Explain the aesthetic and cultural context behind suggestions
-- Provide actionable, specific recommendations
+Give some relaxed, friendly suggestions for items that could boost the performativeness score. Keep it casual and light - like you're giving friendly advice to a friend. Focus on high-value items from the categories that seem to be missing, but don't be too prescriptive. Use a casual, conversational tone like "maybe add..." or "could throw in..." or "might help if you..."
 
-Be thorough in your feedback - the user wants to understand not just what to add, but why and how it would improve their performativeness score. Give them real insights, not just quick tips.
-
-That's it! Just look at the image and share what you find. Be flexible with book identification - if it looks like it could be feminist literature, include it."""
+Remember: When in doubt, include it! Be generous and relaxed in your detection."""
         
         # Analyze image with Gemini - use generation config for more thorough analysis
         try:
-            # Use generation config for balanced analysis
+            # Use generation config for more relaxed, flexible analysis
             # Dictionary format works with Gemini API
             generation_config = {
-                "temperature": 0.4,  # Balanced temperature for natural, flexible responses
+                "temperature": 0.8,  # Higher temperature for more relaxed, generous interpretation
                 "top_p": 0.95,
                 "top_k": 40,
                 "max_output_tokens": 2048,  # Allow longer, detailed responses
             }
-            response = model.generate_content(
-                [prompt, image],
-                generation_config=generation_config
-            )
             
-            # Safely get response text
+            # Configure safety settings to be more permissive for personal images
+            # Use genai.types.SafetySetting for proper enum values
             try:
-                detected_items_text = response.text if hasattr(response, 'text') and response.text else ""
+                from google.generativeai.types import HarmCategory, HarmBlockThreshold
+                safety_settings = [
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        "threshold": HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                ]
+            except ImportError:
+                # Fallback to string format if enums not available
+                safety_settings = [
+                    {
+                        "category": "HARM_CATEGORY_HARASSMENT",
+                        "threshold": "BLOCK_NONE"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_HATE_SPEECH",
+                        "threshold": "BLOCK_NONE"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        "threshold": "BLOCK_ONLY_HIGH"
+                    },
+                    {
+                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "threshold": "BLOCK_NONE"
+                    }
+                ]
+            
+            try:
+                response = model.generate_content(
+                    [prompt, image],
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+            except Exception as gen_error:
+                # If generation fails, try without safety settings override
+                try:
+                    response = model.generate_content(
+                        [prompt, image],
+                        generation_config=generation_config
+                    )
+                except:
+                    raise gen_error
+            
+            # Check if content was blocked
+            if hasattr(response, 'prompt_feedback') and response.prompt_feedback:
+                if hasattr(response.prompt_feedback, 'block_reason') and response.prompt_feedback.block_reason:
+                    raise Exception(f"Content blocked: {response.prompt_feedback.block_reason}")
+            
+            # Safely extract text from response
+            detected_items_text = ""
+            try:
+                # First try the simple .text property
+                if hasattr(response, 'text'):
+                    try:
+                        detected_items_text = response.text or ""
+                    except Exception:
+                        pass
+                
+                # If .text didn't work, try accessing through candidates
+                if not detected_items_text and hasattr(response, 'candidates'):
+                    candidates = getattr(response, 'candidates', [])
+                    if candidates and len(candidates) > 0:
+                        try:
+                            candidate = candidates[0]
+                            # Check if content was blocked in candidate
+                            if hasattr(candidate, 'finish_reason'):
+                                finish_reason = getattr(candidate, 'finish_reason', None)
+                                if finish_reason and 'SAFETY' in str(finish_reason).upper():
+                                    raise Exception("Content was blocked by safety filters")
+                            
+                            # Try to get text from candidate
+                            if hasattr(candidate, 'content'):
+                                content = getattr(candidate, 'content', None)
+                                if content and hasattr(content, 'parts'):
+                                    parts = getattr(content, 'parts', [])
+                                    if parts and len(parts) > 0:
+                                        part = parts[0]
+                                        if hasattr(part, 'text'):
+                                            detected_items_text = getattr(part, 'text', '') or ""
+                        except (IndexError, AttributeError, KeyError, TypeError) as e:
+                            print(f"Warning: Could not extract text from candidate: {str(e)}")
+                
+                # Last resort: try direct parts access
+                if not detected_items_text and hasattr(response, 'parts'):
+                    parts = getattr(response, 'parts', [])
+                    if parts and len(parts) > 0:
+                        try:
+                            part = parts[0]
+                            if hasattr(part, 'text'):
+                                detected_items_text = getattr(part, 'text', '') or ""
+                        except (IndexError, AttributeError, KeyError, TypeError):
+                            pass
+                            
             except Exception as e:
-                print(f"Error accessing response text: {e}")
+                # If we hit a blocking error, re-raise it
+                if 'blocked' in str(e).lower() or 'safety' in str(e).lower():
+                    raise
+                # Otherwise, log and continue with empty string
+                print(f"Warning: Could not extract text from response: {str(e)}")
                 detected_items_text = ""
             
-            # If no text, try to get from candidates
+            # If we still have no text, the response might be empty or blocked
             if not detected_items_text:
-                try:
-                    if hasattr(response, 'candidates') and response.candidates:
-                        if len(response.candidates) > 0:
-                            candidate = response.candidates[0]
-                            if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                                if len(candidate.content.parts) > 0:
-                                    detected_items_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
-                except Exception as e:
-                    print(f"Error accessing response candidates: {e}")
-                    detected_items_text = ""
+                # Check if response indicates blocking
+                candidates = getattr(response, 'candidates', None)
+                if candidates and len(candidates) > 0:
+                    try:
+                        candidate = candidates[0]
+                        if hasattr(candidate, 'finish_reason'):
+                            finish_reason = str(getattr(candidate, 'finish_reason', '')).upper()
+                            if 'SAFETY' in finish_reason or 'BLOCK' in finish_reason:
+                                raise Exception("Content was blocked by safety filters. Please try a different image.")
+                    except (IndexError, AttributeError, TypeError):
+                        pass
+                # If no blocking but also no text, it's an empty response
+                print("Warning: Received empty response from Gemini API")
             
             # Validate that we got a substantial response
             if detected_items_text and len(detected_items_text.strip()) < 100:
                 # If response is too short, request a bit more detail
-                enhanced_prompt = """Could you take another look at this image? Try to spot:
-- Clothing items (shirt, pants, jacket, shoes)
-- Books or reading materials
-- Beverages or drinks
-- Bags or accessories
-- The environment or setting
-- Any decorative items, plants, or other objects
+                enhanced_prompt = """Could you take another look at this image? Try to spot anything that might match - be GENEROUS and don't be too strict:
+- Clothing items (any trendy, baggy, or vintage-looking pieces)
+- Books or reading materials (any books, especially if they look literary or feminist)
+- Beverages or drinks (coffee, tea, matcha, or any cafe-style drinks)
+- Bags or accessories (tote bags, keychains, or any aesthetic items)
+- The environment or setting (cafes, bookstores, cozy spaces, or aesthetic backgrounds)
+- Any decorative items, plants, or other objects (be lenient - if it could fit the vibe, include it)
 
-Just list what you see that might match the performative male culture categories."""
+Just list what you see - remember to be generous and not too strict with your interpretation!"""
                 
                 try:
                     enhanced_response = model.generate_content(
                         [enhanced_prompt, image],
-                        generation_config=generation_config
+                        generation_config=generation_config,
+                        safety_settings=safety_settings
                     )
+                    # Safely extract text from enhanced response
                     enhanced_text = ""
                     try:
-                        enhanced_text = enhanced_response.text if hasattr(enhanced_response, 'text') and enhanced_response.text else ""
-                    except:
-                        # Try alternative way to get text
-                        try:
-                            if hasattr(enhanced_response, 'candidates') and enhanced_response.candidates and len(enhanced_response.candidates) > 0:
+                        if hasattr(enhanced_response, 'text') and enhanced_response.text:
+                            enhanced_text = enhanced_response.text
+                        elif hasattr(enhanced_response, 'candidates') and enhanced_response.candidates:
+                            if len(enhanced_response.candidates) > 0:
                                 candidate = enhanced_response.candidates[0]
-                                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts') and len(candidate.content.parts) > 0:
-                                    enhanced_text = candidate.content.parts[0].text if hasattr(candidate.content.parts[0], 'text') else ""
-                        except:
-                            pass
+                                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                                    if len(candidate.content.parts) > 0:
+                                        if hasattr(candidate.content.parts[0], 'text'):
+                                            enhanced_text = candidate.content.parts[0].text
+                    except (IndexError, AttributeError, KeyError):
+                        pass
                     
                     if enhanced_text and len(enhanced_text.strip()) > len(detected_items_text.strip()):
                         detected_items_text = enhanced_text
-                except Exception as e:
+                except Exception as enh_error:
                     # If enhanced analysis fails, continue with original response
-                    print(f"Enhanced analysis failed: {e}")
+                    print(f"Enhanced analysis failed: {str(enh_error)}")
                     pass
         except Exception as e:
             error_msg = str(e)
+            import traceback
+            print(f"Gemini API error: {error_msg}")
+            print(f"Traceback: {traceback.format_exc()}")
+            
             if 'API_KEY' in error_msg or 'api key' in error_msg.lower():
                 return jsonify({'error': 'Invalid Gemini API key. Please check your GEMINI_API_KEY.'}), 500
             elif 'quota' in error_msg.lower() or 'rate limit' in error_msg.lower():
                 return jsonify({'error': 'API quota exceeded or rate limit reached. Please try again later.'}), 429
+            elif 'safety' in error_msg.lower() or 'blocked' in error_msg.lower() or 'content policy' in error_msg.lower():
+                return jsonify({'error': 'Image content was blocked by safety filters. Please try a different image.'}), 400
+            elif 'index out of range' in error_msg.lower():
+                return jsonify({'error': 'Unable to process image response. The image may have been blocked or the response format was unexpected. Please try a different image.'}), 500
             else:
                 return jsonify({'error': f'Gemini API error: {error_msg}'}), 500
         
@@ -444,118 +443,81 @@ Just list what you see that might match the performative male culture categories
         detected_items = []
         improvement_suggestions = []
         
-        # Ensure we have text to parse
-        if not detected_items_text or not detected_items_text.strip():
-            print("Warning: Empty response from Gemini API")
-            detected_items_text = "No items detected in the image."
-        
         # Find the split point between detected items and suggestions
-        try:
-            lines = detected_items_text.split('\n')
-            items_end_index = len(lines) if lines else 0
-            suggestion_keywords = ['improvement', 'suggestions', 'to improve', 'could be added', 'missing', 'section 2']
-            
-            # Find where suggestions section starts
-            for i, line in enumerate(lines):
-                if not line:  # Skip empty lines
-                    continue
-                line_lower = line.lower()
-                if any(keyword in line_lower for keyword in suggestion_keywords):
-                    # Check if this line actually starts suggestions (not just mentions the word)
-                    if 'section' in line_lower or 'improve' in line_lower or 'suggestions' in line_lower:
-                        items_end_index = i
-                        break
-        except Exception as e:
-            print(f"Error parsing response lines: {e}")
-            lines = [detected_items_text]
-            items_end_index = len(lines)
+        lines = detected_items_text.split('\n')
+        items_end_index = len(lines)
+        suggestion_keywords = ['improvement', 'suggestions', 'to improve', 'could be added', 'missing', 'section 2']
+        
+        # Find where suggestions section starts
+        for i, line in enumerate(lines):
+            line_lower = line.lower()
+            if any(keyword in line_lower for keyword in suggestion_keywords):
+                # Check if this line actually starts suggestions (not just mentions the word)
+                if 'section' in line_lower or 'improve' in line_lower or 'suggestions' in line_lower:
+                    items_end_index = i
+                    break
         
         # Parse detected items (everything before suggestions)
-        items_section = ""
-        try:
-            items_section = '\n'.join(lines[:items_end_index]) if lines and items_end_index > 0 else ""
-            for line in items_section.split('\n'):
-                try:
-                    line = line.strip()
-                    if line and not any(keyword in line.lower() for keyword in ['section', 'detected items', 'format', 'example', 'instructions']):
-                        # Remove bullet points, dashes, numbers, etc.
-                        cleaned_line = line
-                        if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
-                            cleaned_line = cleaned_line[1:].strip()
-                        # Remove numbered lists
-                        if cleaned_line and len(cleaned_line) > 0:
-                            # Safely check first character
-                            first_char = cleaned_line[0] if cleaned_line else ''
-                            if first_char.isdigit():
-                                # Check if there's a delimiter in the first few characters
-                                check_prefix = cleaned_line[:min(3, len(cleaned_line))]
-                                if '.' in check_prefix:
-                                    parts = cleaned_line.split('.', 1)
-                                    if len(parts) > 1 and parts[1].strip():
-                                        cleaned_line = parts[1].strip()
-                                elif ')' in check_prefix:
-                                    parts = cleaned_line.split(')', 1)
-                                    if len(parts) > 1 and parts[1].strip():
-                                        cleaned_line = parts[1].strip()
-                        if cleaned_line and len(cleaned_line) > 2:
-                            detected_items.append(cleaned_line)
-                except Exception as e:
-                    print(f"Error parsing line '{line}': {e}")
-                    continue
-        except Exception as e:
-            print(f"Error parsing items section: {e}")
-            # Fallback: just use the raw text
-            if items_section:
-                detected_items = [items_section]
-            else:
-                items_section = detected_items_text[:500]  # Use first 500 chars as fallback
-                detected_items = [items_section] if items_section else []
+        items_section = '\n'.join(lines[:items_end_index])
+        for line in items_section.split('\n'):
+            line = line.strip()
+            if line and not any(keyword in line.lower() for keyword in ['section', 'detected items', 'format', 'example', 'instructions']):
+                # Remove bullet points, dashes, numbers, etc.
+                cleaned_line = line
+                if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
+                    cleaned_line = cleaned_line[1:].strip()
+                # Remove numbered lists (safely check string length first)
+                if cleaned_line and len(cleaned_line) > 0 and cleaned_line[0].isdigit() and ('.' in cleaned_line[:3] or ')' in cleaned_line[:3]):
+                    try:
+                        parts = cleaned_line.split('.', 1) if '.' in cleaned_line[:3] else cleaned_line.split(')', 1)
+                        if len(parts) > 1:
+                            cleaned_line = parts[1].strip()
+                    except (IndexError, ValueError):
+                        # If splitting fails, just use the original line
+                        pass
+                if cleaned_line and len(cleaned_line) > 2:
+                    detected_items.append(cleaned_line)
         
         # Parse improvement suggestions (everything after the split point)
-        try:
-            suggestions_section = '\n'.join(lines[items_end_index:]) if lines and items_end_index < len(lines) else ""
-            for line in suggestions_section.split('\n'):
-                try:
-                    line = line.strip()
-                    # Skip header lines
-                    if any(keyword in line.lower() for keyword in ['section', 'format', 'example', 'instructions']):
-                        continue
-                    if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
-                                any(keyword in line.lower() for keyword in ['add', 'include', 'wear', 'display', 'take'])):
-                        # Remove bullet points, dashes, numbers, etc.
-                        cleaned_line = line
-                        if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
-                            cleaned_line = cleaned_line[1:].strip()
-                        # Remove numbered lists
-                        if cleaned_line and len(cleaned_line) > 0:
-                            # Safely check first character
-                            first_char = cleaned_line[0] if cleaned_line else ''
-                            if first_char.isdigit():
-                                # Check if there's a delimiter in the first few characters
-                                check_prefix = cleaned_line[:min(3, len(cleaned_line))]
-                                if '.' in check_prefix:
-                                    parts = cleaned_line.split('.', 1)
-                                    if len(parts) > 1 and parts[1].strip():
-                                        cleaned_line = parts[1].strip()
-                                elif ')' in check_prefix:
-                                    parts = cleaned_line.split(')', 1)
-                                    if len(parts) > 1 and parts[1].strip():
-                                        cleaned_line = parts[1].strip()
-                        if cleaned_line and len(cleaned_line) > 10:  # Longer threshold for suggestions
-                            improvement_suggestions.append(cleaned_line)
-                except Exception as e:
-                    print(f"Error parsing suggestion line '{line}': {e}")
-                    continue
-        except Exception as e:
-            print(f"Error parsing suggestions section: {e}")
-            improvement_suggestions = []
+        suggestions_section = '\n'.join(lines[items_end_index:])
+        for line in suggestions_section.split('\n'):
+            line = line.strip()
+            # Skip header lines
+            if any(keyword in line.lower() for keyword in ['section', 'format', 'example', 'instructions']):
+                continue
+            if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
+                        any(keyword in line.lower() for keyword in ['add', 'include', 'wear', 'display', 'take'])):
+                # Remove bullet points, dashes, numbers, etc.
+                cleaned_line = line
+                if cleaned_line.startswith('-') or cleaned_line.startswith('•') or cleaned_line.startswith('*'):
+                    cleaned_line = cleaned_line[1:].strip()
+                # Remove numbered lists (safely check string length first)
+                if cleaned_line and len(cleaned_line) > 0 and cleaned_line[0].isdigit() and ('.' in cleaned_line[:3] or ')' in cleaned_line[:3]):
+                    try:
+                        parts = cleaned_line.split('.', 1) if '.' in cleaned_line[:3] else cleaned_line.split(')', 1)
+                        if len(parts) > 1:
+                            cleaned_line = parts[1].strip()
+                    except (IndexError, ValueError):
+                        # If splitting fails, just use the original line
+                        pass
+                if cleaned_line and len(cleaned_line) > 10:  # Longer threshold for suggestions
+                    improvement_suggestions.append(cleaned_line)
         
         # If no items parsed, try splitting by sentences (fallback)
-        if not detected_items and items_section:
-            try:
-                detected_items = [s.strip() for s in items_section.split('.') if s.strip() and len(s.strip()) > 2]
-            except:
-                detected_items = []
+        if not detected_items:
+            detected_items = [s.strip() for s in items_section.split('.') if s.strip() and len(s.strip()) > 2]
+        
+        # If we still have no detected items and no text was extracted, return a helpful message
+        if not detected_items and not detected_items_text:
+            return jsonify({
+                'percentage': 0,
+                'detected_items': ["No items could be detected from the image. The image may have been blocked or the response was empty."],
+                'detected_categories': [],
+                'category_details': [],
+                'score': 0,
+                'max_score': sum(char["weight"] for char in PERFORMATIVE_CHARACTERISTICS.values()),
+                'improvement_suggestions': generate_improvement_suggestions(set())
+            })
         
         # Calculate performativeness score
         percentage, detected_categories, score, max_score = calculate_performativeness_score(detected_items)
@@ -584,23 +546,6 @@ Just list what you see that might match the performative male culture categories
         
         improvement_suggestions = generated_suggestions
         
-        # Generate AI-powered roasts based on percentage
-        roast = None
-        if percentage < 30:
-            # Brutal roast for < 30%
-            try:
-                roast = generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='brutal')
-            except Exception as e:
-                print(f"Error generating brutal roast: {e}")
-                roast = generate_fallback_roast(percentage, detected_categories, 'brutal')
-        elif 30 <= percentage < 60:
-            # Mixed feedback (roast + compliments) for 30-60%
-            try:
-                roast = generate_ai_roast(model, image, percentage, detected_items, detected_categories, roast_type='mixed')
-            except Exception as e:
-                print(f"Error generating mixed feedback: {e}")
-                roast = generate_fallback_roast(percentage, detected_categories, 'mixed')
-        
         # Get category details
         category_details = []
         for category in detected_categories:
@@ -617,13 +562,12 @@ Just list what you see that might match the performative male culture categories
             'category_details': category_details,
             'score': score,
             'max_score': max_score,
-            'improvement_suggestions': improvement_suggestions,
-            'roast': roast
+            'improvement_suggestions': improvement_suggestions
         })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
 
